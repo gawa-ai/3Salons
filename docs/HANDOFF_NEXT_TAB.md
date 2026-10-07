@@ -29,18 +29,19 @@ Website + booking system ng **Shahina Ahmed** (brand/owner lang, HINDI bookable 
 - Workspace limits: egress proxy humaharang sa Netlify, npm, Supabase Auth/Storage hosts, at raw.githubusercontent.com. Gumagana: GitHub push, `git clone` ng github.com, Supabase MCP.
 
 ## 4. Ginawa na (VERIFIED sa local tests/screenshots maliban kung nakasaad)
-- Owner-not-bookable model, live sa DB. Demo logins (sample lang; emails sa BUILD_STATE, passwords sa JG): shahinaahmed@, sofiamua@, shirinjal@, mihijabbysabiha@ `@sample.com`. Mayroon ding sample bookings/enquiries (phones 07700 9001xx).
+- (SUPERSEDED 2026-10-07: si Shahina ay public professional na ulit, first card; 4 professionals.) Owner-not-bookable model dati. Demo logins (sample lang; emails sa BUILD_STATE, passwords sa JG): shahinaahmed@, sofiamua@, shirinjal@, mihijabbysabiha@ `@sample.com`. Mayroon ding sample bookings/enquiries (phones 07700 9001xx).
 - Colourful redesign (landing, sign-in, dashboard), tagline "Your moment. Your signature look.", walang "luxury salon" text.
 - **Portfolio media** (static, committed sa `web/public/gallery/<artist-slug>/`, ref sa `app.gallery_items.storage_path` na nagsisimula sa `/`; sinusuportahan ng `publicStorageUrl` ang site-relative paths; videos may `-poster.jpg`):
   - Sofia MUA: 9 items (6 videos, 3 photos) — migrations 20261007001400, 001500
   - Shirin Jal: 8 videos — 001600 (look-8 may FlipaClip watermark + "Photography by Mohamed Gore" credit; look-4 may itim na bar)
   - Mi Hijabby Sabiha: 8 videos — 001700
   - Lahat live na ang rows sa DB (via apply_migration). Kinumpirma ni JG na galing sa Instagram ng mga artists ang media (consent ok).
-- **Branding**: tunay na SA monogram (`web/public/brand/sa-monogram.png`) sa header, footer, sidebar, sign-in, hero arch, bridal arch, favicon, apple-touch-icon, og-image. Pangalang "Shahina Ahmed" sa **Pinyon Script** (OFL, `web/public/fonts/pinyon-script.woff`) sa wordmark/lockup SVGs (regenerate: `PINYON=<path to PinyonScript-Regular.ttf> python3 brand/build_brand.py <fonts dir>`) at owner name sa sidebar. Hindi cursive: footer "© year", topbar subtitle, document titles.
+- **Branding**: tunay na SA monogram (`web/public/brand/sa-monogram.png`) sa header, footer, sidebar, sign-in, hero arch, bridal arch, favicon, apple-touch-icon, og-image. Pangalang "Shahina Ahmed" ay **trinace mula sa mismong logo niya** (`brand/source-logos/shahina-logo-black.png` → `python3 brand/trace_name.py` → `brand/name_path.json` → `python3 brand/build_brand.py <fonts dir>` + `node brand/render.cjs`), kasama ang heart sa i. Wala nang Pinyon font. Hindi cursive: footer "© year", topbar subtitle, document titles.
 
 ## 5. Mga susunod na gagawin (priority)
 1. **I-verify ang live site** (JG o browser tool): landing, gallery videos nagpe-play, sign-in, dashboard, logo/favicon. Tingnan din kung maayos ang 3-column hero ng artists at mobile.
-2. **I-update ang docs**: BUILD_STATE, README, at kopya sa Project (`claude/shahina-salon-BUILD_STATE.md`) para sa gallery, SA logo, Pinyon font. (Hindi pa nagagawa.)
+2. Docs: BUILD_STATE/MISSING_INFO/HANDOFF updated para sa restored Shahina + traced lettering + gallery (README hindi pa).
+3. Shahina gallery: 3 videos (isa ay logo reveal, nasa dulo) + 14 photos sa `web/public/gallery/shahina-ahmed/`.
 3. **Gallery polish**: ayusin/palitan ang Shirin look-8 (watermark) at look-4 kung gusto ni JG; posibleng i-feature ang gallery sa artist pages (tingnan kung lumalabas, `web/src/public/artist.ts`); isaalang-alang ang autoplay-on-view na muted loop kung hihilingin.
 4. **Business info na kulang** (tingnan `docs/MISSING_INFO.md`): address, phone/WhatsApp, hours, service durations/prices, policies.
 5. **Pagpapatunay ng pangalan** kay JG: "Sofia MUA" vs "Sofia Musa" (logo lettering), "Mi Hijabby Sabiha" vs "Mi Hijab by Sabiha"; relasyon ng tatlong salons/iisang building?

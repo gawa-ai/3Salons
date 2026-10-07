@@ -40,7 +40,6 @@ serif_italic = instance(FONTS / "cormorantgaramond/CormorantGaramond-Italic[wght
 sans = instance(FONTS / "manrope/Manrope[wght].ttf", 600)
 # Signature script for the salon name (Pinyon Script, SIL OFL). Set PINYON=/path/to/PinyonScript-Regular.ttf
 import os
-script = TTFont(os.environ.get("PINYON", str(FONTS / "pinyonscript/PinyonScript-Regular.ttf")))
 NAME = "Shahina Ahmed"
 
 
@@ -94,21 +93,22 @@ def write(name, content):
     print("wrote", name)
 
 
-# ------------------------------------------------------------------ stacked lockup (name + rule, no descriptor)
+# ------------------------------------------------------------------ name = traced from her own logo (brand/trace_name.py)
+import json
+TR = json.loads((pathlib.Path(__file__).parent / "name_path.json").read_text())
+
+def name_g(ink, width, x, y):
+    k = width / TR["w"]
+    return f'<path fill="{ink}" transform="translate({x:.2f} {y:.2f}) scale({k:.5f})" d="{TR["d"]}"/>', TR["h"] * k
+
 def lockup(ink, accent):
-    name_size = 150
-    _, w_name, b_name = text_paths(script, NAME, name_size, tracking_em=0.0, kerning=False)
-    pad = 24
+    pad = 24; w_name = 620
+    g, nh = name_g(ink, w_name, pad, pad)
     W = w_name + pad * 2
-    name_h = b_name[3] - b_name[1]
-    y_name = pad - b_name[1]
-    rule_y = pad + name_h + 40
+    rule_y = pad + nh + 36
     H = rule_y + 6 + pad
-    d_name, _, _ = text_paths(script, NAME, name_size, 0.0, pad, y_name, kerning=False)
-    cx = W / 2
-    half = w_name * 0.2
-    dm = 6
-    body = (f'<path fill="{ink}" d="{d_name}"/>\n'
+    cx = W / 2; half = w_name * 0.2; dm = 6
+    body = (g + "\n"
             f'<g fill="none" stroke="{accent}" stroke-width="1.6">'
             f'<line x1="{cx - half:.1f}" y1="{rule_y:.1f}" x2="{cx - dm - 10:.1f}" y2="{rule_y:.1f}"/>'
             f'<line x1="{cx + dm + 10:.1f}" y1="{rule_y:.1f}" x2="{cx + half:.1f}" y2="{rule_y:.1f}"/></g>\n'
@@ -118,17 +118,10 @@ def lockup(ink, accent):
 write("shahina-ahmed-lockup.svg", lockup(CHARCOAL, BRONZE))
 write("shahina-ahmed-lockup-light.svg", lockup(IVORY, BRONZE_LIGHT))
 
-
-# ------------------------------------------------------------------ one-line wordmark (header): name only
 def wordmark(ink, accent):
-    size = 84
-    _, w_name, b_name = text_paths(script, NAME, size, 0.0, kerning=False)
-    pad = 6
-    W = w_name + pad * 2
-    y_name = pad - b_name[1]
-    H = (b_name[3] - b_name[1]) + pad * 2
-    d_name, _, _ = text_paths(script, NAME, size, 0.0, pad, y_name, kerning=False)
-    return svg(W, H, f'<path fill="{ink}" d="{d_name}"/>', "Shahina Ahmed")
+    pad = 6; w_name = 420
+    g, nh = name_g(ink, w_name, pad, pad)
+    return svg(w_name + pad * 2, nh + pad * 2, g, "Shahina Ahmed")
 
 write("shahina-ahmed-wordmark.svg", wordmark(CHARCOAL, BRONZE))
 write("shahina-ahmed-wordmark-light.svg", wordmark(IVORY, BRONZE_LIGHT))

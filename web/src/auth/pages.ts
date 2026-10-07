@@ -10,7 +10,7 @@ function authShell(app: HTMLElement, title: string, lede: string, body: Node[]) 
   mount(app, h('main', { class: 'auth-page', attrs: { id: 'main' } },
     h('div', { class: 'auth-art', attrs: { 'aria-hidden': 'true' } },
       h('div', { class: 'auth-arch' }, h('img', { attrs: { src: '/brand/sa-monogram.png', alt: '', width: 120, height: 158 } })),
-      h('img', { class: 'auth-lockup', attrs: { src: '/brand/shahina-ahmed-lockup-light.svg', alt: '', width: 300, height: 68 } })),
+      h('img', { class: 'auth-lockup', attrs: { src: '/brand/shahina-ahmed-lockup-light.svg', alt: '', width: 300, height: 86 } })),
     h('div', { class: 'auth-panel' },
       h('a', { class: 'auth-back', attrs: { href: '/' } }, icon('chevronLeft', 16), h('span', { text: 'Back to the website' })),
       h('div', { class: 'auth-card' },

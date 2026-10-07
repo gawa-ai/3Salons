@@ -81,13 +81,13 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
   const identity = h('div', { class: 'side-identity' },
     ownPro?.logo_path ? h('img', { class: 'side-avatar', attrs: { src: ownPro.logo_path, alt: '', width: 40, height: 40 } }) : h('span', { class: 'side-avatar side-avatar-text', text: (me.user.email[0] ?? '?').toUpperCase() }),
     h('div', { class: 'side-id-text' },
-      h('p', { class: ['side-name', isOwner ? 'script-name' : ''], text: isOwner ? 'Shahina Ahmed' : (ownPro?.display_name ?? m.display_name ?? me.user.email) }),
+      h('p', { class: 'side-name', text: isOwner ? 'Shahina Ahmed' : (ownPro?.display_name ?? m.display_name ?? me.user.email) }),
       h('p', { class: 'side-role', text: who })));
 
   const sidebar = h('aside', { class: 'sidebar', attrs: { id: 'studio-nav', 'aria-label': 'Studio' } },
     h('a', { class: 'side-brand', attrs: { href: '/studio', 'aria-label': 'Studio overview' } },
       h('img', { class: 'logo-mark', attrs: { src: '/brand/sa-monogram.png', alt: '', width: 30, height: 40 } }),
-      h('img', { attrs: { src: '/brand/shahina-ahmed-wordmark-light.svg', alt: 'Shahina Ahmed', width: 150, height: 23 } })),
+      h('img', { attrs: { src: '/brand/shahina-ahmed-wordmark-light.svg', alt: 'Shahina Ahmed', width: 150, height: 28 } })),
     h('nav', { attrs: { 'aria-label': 'Studio sections' } }, navList),
     h('div', { class: 'side-foot' }, identity,
       h('div', { class: 'side-foot-links' },

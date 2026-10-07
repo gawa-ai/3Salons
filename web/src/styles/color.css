@@ -126,10 +126,11 @@ a.tile:hover { color: #fff; box-shadow: 0 20px 36px -16px rgba(46, 22, 54, .7); 
 .side-brand { display: flex; align-items: center; gap: 10px; }
 .side-brand img.logo-mark { width: 28px; height: auto; }
 .side-brand img:not(.logo-mark) { width: 150px; }
-.script-name { font-family: 'Pinyon Script', var(--serif); font-weight: 400; font-size: 22px; line-height: 1.1; letter-spacing: .01em; }
 .footer-brand img:not(.logo-mark) { width: 230px; }
 .bridal-arch-lines { display: grid; place-items: center; }
 .bridal-arch-lines .bridal-mark { width: 42%; height: auto; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); }
 .auth-mark { width: 43px; height: auto; }
 .auth-arch img { width: 46%; height: auto; }
 @media (max-width: 760px) { .site-logo img.logo-word { width: 150px; } .site-logo img.logo-mark { width: 28px; } }
+
+.logo-word, .side-brand img:not(.logo-mark), .footer-brand img:not(.logo-mark), .auth-card img[src*='lockup'] { height: auto; }

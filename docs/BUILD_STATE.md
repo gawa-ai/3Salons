@@ -18,7 +18,7 @@ Labels: **VERIFIED** = tested, at may resulta sa ibaba. **SUPPORTED** = sinusupo
 | SimplyBooked cleanup | **Inihanda + VERIFIED local** (7/7), **HINDI pinatakbo** | `supabase/manual/simplybooked_cleanup.sql`, `tests/db/30_simplybooked_cleanup.sh` |
 | Portfolio photos/videos | **Wala pa** | Tingnan ang `MISSING_INFO.md` §1 |
 
-| Shahina = owner lang, hindi artist | **VERIFIED** live + local | Migration `owner_not_bookable`: 3 public professionals, profile niya ay inactive/hidden (walang binura), `/artists/shahina-ahmed` → not found, owner invite walang professional |
+| Shahina = owner AT public professional (ibinalik 2026-10-07 sa utos ni JG) | **VERIFIED** live (migration) + local (115 DB, 33 e2e) | Migration `shahina_professional_gallery`: 4 public professionals, siya ang first card (circular logo, IG shahinaahmedmua), 4 services reactivated (placeholder prices, unconfirmed), 17 gallery items. Owner membership/invite ay walang professional (owner view pa rin ng lahat). Pinapalitan nito ang epekto ng `owner_not_bookable` |
 | Demo logins (live, 2026-10-07) | **VERIFIED** sa DB | 4 sample accounts: `shahinaahmed@sample.com` (owner), `sofiamua@`, `shirinjal@`, `mihijabbysabiha@` (`@sample.com`). Password hash ay tugma; owner nakakakita ng Team at All professionals; bawat staff ay naka-scope sa sariling artist at `forbidden` sa Team at sa ibang artist. Totoong browser login ay hindi na-test mula sa workspace (naka-block ang Supabase Auth host) |
 
 ## Ano ang hindi ginalaw

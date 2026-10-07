@@ -23,7 +23,7 @@ Hindi gagamit ng stock o AI-generated photos bilang "trabaho" ng artists.
 | **Sofia MUA** | Logo at Instagram: "sofia musa" / @sofimusamua; price list: "Sofi" | "Sofia MUA" o "Sofia Musa" ang gusto niyang pangalan sa site? |
 | **Mi Hijabby Sabiha** | Logo: "Mi hijab BY SABIHA"; Instagram @mi.hijabbysabiha | "Mi Hijabby Sabiha" o "Mi Hijab by Sabiha"? |
 | **Shirin Jal** | Pareho sa logo | — |
-| **Shahina Ahmed** | Owner/brand lang. Hindi bookable artist (kumpirmado ni JG: sa kanya ang tatlong salon) | — Naka-hide na ang dating profile niya (migration `owner_not_bookable`) |
+| **Shahina Ahmed** | Owner at public professional (ibinalik ni JG 2026-10-07) | Kumpirmahin ang services/prices/oras niya (placeholder pa) |
 
 Ang pagpapalit ng pangalan ay isang update lang sa Studio → Professionals. Walang code change.
 

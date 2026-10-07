@@ -96,28 +96,29 @@ select pg_temp.check((pg_temp.q(format($$select public.salon_claim_invite(%L)$$,
 -- ---------------------------------------------------------------- 2. public site (anon)
 reset role; set role anon; select pg_temp.login(null);
 select public.salon_public_profile('shahina-ahmed') as prof \gset
-select pg_temp.check((:'prof'::jsonb)->>'ok' = 'true' and jsonb_array_length((:'prof'::jsonb)->'professionals') = 3 and not exists (select 1 from jsonb_array_elements((:'prof'::jsonb)->'professionals') x where x->>'slug' = 'shahina-ahmed'), '13 public profile lists the 3 artists, not the owner');
+select pg_temp.check((:'prof'::jsonb)->>'ok' = 'true' and jsonb_array_length((:'prof'::jsonb)->'professionals') = 4 and (:'prof'::jsonb)#>>'{professionals,0,slug}' = 'shahina-ahmed', '13 public profile lists Shahina first plus the 3 artists');
 select pg_temp.check((:'prof'::jsonb)#>'{salon,hours}' = 'null'::jsonb and (:'prof'::jsonb)#>>'{salon,address}' is null,
   '14 unconfirmed hours/address are not published');
 select pg_temp.check((select bool_and(s->>'price_pence' is null) from jsonb_array_elements((:'prof'::jsonb)->'professionals') p,
                        jsonb_array_elements(p->'services') s where s->>'price_kind' = 'enquire'), '15 bridal shows no price (enquire)');
 select pg_temp.check(position('client' in (:'prof')) = 0 and position('phone":"+' in (:'prof')) = 0, '16 public profile carries no client data');
 
--- legacy data: a 'shahina-ahmed' professional from the first seed is hidden by the owner_not_bookable migration
+-- legacy data: the first seed's 'shahina-ahmed' professional is hidden by owner_not_bookable, then restored by shahina_professional_gallery
 reset role;
-insert into app.professionals (salon_id, slug, display_name, short_name, specialty, color, sort_order)
-  values (:'salon', 'shahina-ahmed', 'Shahina Ahmed', 'Shahina', 'Hair & Makeup', 'bronze', 1);
-insert into app.services (salon_id, professional_id, name, category, duration_min, buffer_min, price_pence, price_kind, bookable_online, details_confirmed, sort_order)
-  select :'salon', id, 'Party Hair', 'hair', 60, 15, 5000, 'fixed', true, false, 1 from app.professionals where slug = 'shahina-ahmed';
-\i ../../supabase/migrations/20261007001200_owner_not_bookable.sql
 \i ../../supabase/migrations/20261007001200_owner_not_bookable.sql
 select pg_temp.check((select not active and not is_public and not online_booking from app.professionals where slug = 'shahina-ahmed')
   and (select not bool_or(v.active) from app.services v join app.professionals p on p.id = v.professional_id where p.slug = 'shahina-ahmed'),
-  '16a legacy owner profile hidden and closed (nothing deleted, re-runnable)');
+  '16a owner_not_bookable hides the legacy profile (nothing deleted, re-runnable)');
+\i ../../supabase/migrations/20261007001800_shahina_professional_gallery.sql
+\i ../../supabase/migrations/20261007001800_shahina_professional_gallery.sql
 set role anon; select pg_temp.login(null);
-select pg_temp.check(jsonb_array_length(public.salon_public_profile('shahina-ahmed')->'professionals') = 3
-  and (public.salon_public_slots('shahina-ahmed', 'shahina-ahmed', '00000000-0000-0000-0000-000000000000', '2030-01-01'))->>'ok' = 'false',
-  '16b owner cannot be opened or booked as an artist');
+select pg_temp.check(jsonb_array_length(public.salon_public_profile('shahina-ahmed')->'professionals') = 4
+  and (select x->>'slug' from jsonb_array_elements(public.salon_public_profile('shahina-ahmed')->'professionals') x limit 1) = 'shahina-ahmed',
+  '16b Shahina is restored as the first public professional (re-runnable)');
+reset role;
+select pg_temp.check((select count(*) from app.gallery_items g join app.professionals p on p.id = g.professional_id where p.slug = 'shahina-ahmed') = 17,
+  '16c Shahina gallery has 17 items and re-running adds no duplicates');
+set role anon; select pg_temp.login(null);
 
 select public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1') as sl \gset
 select pg_temp.check(jsonb_array_length((:'sl'::jsonb)->'slots') = 29, '17 60-min service 10:00-18:00 gives 29 start times', :'sl'::jsonb);
@@ -335,7 +336,7 @@ select pg_temp.check((pg_temp.q(format($$select public.salon_dash_gallery_add(%L
   '105 gallery entry must point at own folder');
 select pg_temp.check((public.salon_dash_gallery_add(:'salon', :'p_sofia', :'salon' || '/' || :'p_sofia' || '/look1.jpg', 'image', 'Soft glam'))->>'ok' = 'true', '106 gallery item added');
 reset role; set role anon;
-select pg_temp.check(jsonb_array_length((public.salon_public_gallery('shahina-ahmed', 'sofia-mua'))->'items') = 1, '107 published gallery item is public');
+select pg_temp.check(exists (select 1 from jsonb_array_elements((public.salon_public_gallery('shahina-ahmed', 'sofia-mua'))->'items') x where x->>'storage_path' like '%/look1.jpg'), '107 published gallery item is public');
 reset role;
 -- a pending request whose time has passed becomes expired
 insert into app.clients (salon_id, professional_id, name, phone) values (:'salon', :'p_shirin', 'Past Pending', '+447700900123');
