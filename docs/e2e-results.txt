@@ -1,0 +1,35 @@
+PASS  P1 home lists 4 professionals
+PASS  P2 preview notice shown while booking_mode = preview
+PASS  P3 unconfirmed hours are not published as fact
+PASS  P4 service tabs switch artist
+PASS  P5 booking request accepted with a reference
+PASS  P6 confirmation shows "Awaiting confirmation" (provisional)
+PASS  P7 booking persisted as pending in the database
+PASS  P8 same slot cannot be booked twice
+PASS  P9 booking for Shirin created
+PASS  P10 private manage link shows provisional status
+PASS  P11 bridal enquiry sent
+PASS  O1 signed-out visitor is redirected away from the studio
+PASS  O2 owner sees the All professionals selector
+PASS  O3 owner "Needs confirming" shows both pending requests
+PASS  O4 owner day calendar has one column per professional
+PASS  O5 messages page is honest: SMS not connected
+PASS  O6 owner creates a one-time staff invitation code
+PASS  O7 code is not stored in plain text
+PASS  O8 sign-out removes the stored session
+PASS  S1 staff has no All professionals selector
+PASS  S2 staff has no owner administration links
+PASS  S3 Sofia sees her client, never Shirin's
+PASS  S4 Sofia confirms her request (persisted)
+PASS  S5 Sofia's bookings list contains no other profile's bookings
+PASS  S6 staff opening an owner page is sent back to their overview
+PASS  S7 Sofia's token cannot widen scope or call owner functions
+PASS  R mobile: home has no horizontal overflow
+PASS  R mobile: booking has no horizontal overflow
+PASS  R mobile: studio has no horizontal overflow
+PASS  R tablet: home has no horizontal overflow
+PASS  R tablet: booking has no horizontal overflow
+PASS  R tablet: studio has no horizontal overflow
+PASS  Z no console errors, page errors or CSP violations
+
+33 checks passed
