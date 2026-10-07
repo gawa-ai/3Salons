@@ -236,6 +236,8 @@ export async function callFunction<T = any>(name: string, body: unknown): Promis
 }
 
 export function publicStorageUrl(bucket: string, path: string): string {
+  // Site-relative static media (committed under web/public), e.g. /gallery/sofia-mua/look-1.mp4
+  if (path.startsWith('/')) return path;
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
 

@@ -185,7 +185,7 @@ async function renderGallery(el: HTMLElement, pros: PublicPro[]) {
 export function galleryGrid(items: { storage_path: string; media_type: string; alt_text: string; caption: string | null; professional: string }[]) {
   return h('ul', { class: 'gallery-grid' }, items.map((g) => h('li', { class: 'gallery-item' },
     g.media_type === 'video'
-      ? h('video', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), muted: true, loop: true, playsinline: true, controls: true, preload: 'metadata', 'aria-label': g.alt_text || `Video by ${g.professional}` } })
+      ? h('video', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), muted: true, loop: true, playsinline: true, controls: true, preload: 'none', poster: g.storage_path.startsWith('/') ? g.storage_path.replace(/\.mp4$/, '-poster.jpg') : undefined, 'aria-label': g.alt_text || `Video by ${g.professional}` } })
       : h('img', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), alt: g.alt_text || `Look by ${g.professional}`, loading: 'lazy', decoding: 'async' } }),
     h('p', { class: 'gallery-caption', text: g.caption ? `${g.caption}, by ${g.professional}` : `By ${g.professional}` }))));
 }
