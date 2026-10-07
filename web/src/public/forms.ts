@@ -8,7 +8,7 @@ import { publicShell } from './layout';
 
 // ===================================================================== bridal enquiry
 export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
-  document.title = 'Bridal enquiry · Shahina Ahmed Luxury Salon';
+  document.title = 'Bridal enquiry · Shahina Ahmed';
   publicShell(app, null, [spinner()]);
   let profile;
   try { profile = await loadProfile(); } catch (e) {
@@ -88,7 +88,7 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
 
 // ===================================================================== manage link
 export async function managePage(app: HTMLElement) {
-  document.title = 'Your booking · Shahina Ahmed Luxury Salon';
+  document.title = 'Your booking · Shahina Ahmed';
   const token = new URLSearchParams(location.hash.replace(/^#/, '')).get('t') ?? '';
   const profile = await loadProfile().catch(() => null);
   const body = h('div', { class: 'manage' }, spinner('Loading your booking'));
@@ -127,7 +127,7 @@ export async function managePage(app: HTMLElement) {
 
 // ===================================================================== privacy notice
 export async function privacyPage(app: HTMLElement) {
-  document.title = 'Privacy · Shahina Ahmed Luxury Salon';
+  document.title = 'Privacy · Shahina Ahmed';
   const profile = await loadProfile().catch(() => null);
   const s = profile?.salon;
   const P = (t: string) => h('p', { text: t });

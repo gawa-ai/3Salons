@@ -36,7 +36,7 @@
 .site-header { position: sticky; top: 0; z-index: 50; background: rgba(247, 242, 238, .92); backdrop-filter: saturate(1.2) blur(10px); border-bottom: 1px solid var(--line-soft); }
 .site-header-inner { width: min(1240px, 100% - 32px); margin-inline: auto; display: flex; align-items: center; gap: 28px; min-height: 76px; }
 .site-logo { display: block; flex: none; }
-.site-logo img { width: 224px; height: auto; }
+.site-logo img { width: 252px; height: auto; }
 .site-nav { display: flex; align-items: center; gap: 28px; margin-left: auto; }
 .site-nav ul { display: flex; gap: 26px; list-style: none; margin: 0; padding: 0; }
 .site-nav a:not(.btn) { color: var(--ink-2); text-decoration: none; font-size: 15px; font-weight: 500; padding: 6px 0; border-bottom: 1px solid transparent; }
@@ -57,7 +57,7 @@
   .site-nav li a:not(.btn) { display: block; padding: 14px 4px; border-bottom: 1px solid var(--line-soft); font-size: 17px; }
   .site-nav-cta { padding-top: 16px; }
   .site-nav-cta .btn { width: 100%; min-height: 48px; }
-  .site-logo img { width: 184px; }
+  .site-logo img { width: 200px; }
 }
 
 /* ---------------------------------------------------------------- hero */

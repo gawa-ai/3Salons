@@ -22,7 +22,7 @@ interface State {
 const STEPS = ['Artist', 'Service', 'Date and time', 'Your details', 'Review'];
 
 export async function bookPage(app: HTMLElement, query: URLSearchParams) {
-  document.title = 'Book an appointment · Shahina Ahmed Luxury Salon';
+  document.title = 'Book an appointment · Shahina Ahmed';
   publicShell(app, null, [spinner('Loading')]);
   let profile: PublicProfile;
   try { profile = await loadProfile(); } catch (e) {

@@ -40,7 +40,7 @@ Edge function accept-invite → gumagawa ng user mula sa one-time invitation cod
 | `brand/` | Original na SVG wordmark/monogram, PNG exports, OG image, at ang mga **orihinal** na logo ng artists (hindi binago). |
 | `tests/db/` | 114 database checks + concurrency; 7 checks para sa SimplyBooked cleanup script. |
 | `tests/e2e/` | 33 browser checks (Playwright) laban sa totoong SQL; screenshots sa `docs/screenshots/`. |
-| `docs/` | `BUILD_STATE.md`, `PERMISSIONS.md`, `MISSING_INFO.md`, `ACCEPTANCE.md`, test results. |
+| `docs/` | `STUDIO_GUIDE.md` (para kay Shahina at sa artists), `BUILD_STATE.md`, `PERMISSIONS.md`, `MISSING_INFO.md`, `ACCEPTANCE.md`, test results. |
 
 ## Setup (sunod-sunod)
 

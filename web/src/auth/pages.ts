@@ -6,7 +6,7 @@ import { loadMe, primaryMembership } from './session';
 
 function authShell(app: HTMLElement, title: string, lede: string, body: Node[]) {
   document.body.className = 'auth';
-  document.title = `${title} · Shahina Ahmed Luxury Salon`;
+  document.title = `${title} · Shahina Ahmed`;
   mount(app, h('main', { class: 'auth-page', attrs: { id: 'main' } },
     h('div', { class: 'auth-art', attrs: { 'aria-hidden': 'true' } },
       h('div', { class: 'auth-arch' }, h('img', { attrs: { src: '/brand/sa-monogram-light.svg', alt: '', width: 160, height: 160 } })),

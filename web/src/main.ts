@@ -51,7 +51,7 @@ route('/studio/audit', ({ path }) => studio(app, path, auditPage, { title: 'Acti
 route('/studio/account', ({ path }) => studio(app, path, accountPage, { title: 'Account', scoped: false }));
 
 setNotFound(() => {
-  document.title = 'Page not found · Shahina Ahmed Luxury Salon';
+  document.title = 'Page not found · Shahina Ahmed';
   publicShell(app, null, [h('section', { class: 'container pad-y narrow' },
     h('h1', { class: 'page-title', text: 'We could not find that page' }),
     h('p', { class: 'muted', text: 'The link may be out of date.' }),

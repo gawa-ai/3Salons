@@ -7,7 +7,7 @@ import { loadProfile, loadGallery, fromPrice, type PublicProfile, type PublicPro
 import { publicShell, arch, proMark } from './layout';
 
 export async function homePage(app: HTMLElement) {
-  document.title = 'Shahina Ahmed Luxury Salon · Blackburn';
+  document.title = 'Shahina Ahmed · Blackburn';
   publicShell(app, null, [spinner('Loading the salon')]);
   let profile: PublicProfile;
   try {
