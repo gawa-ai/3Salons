@@ -116,3 +116,18 @@ a.tile:hover { color: #fff; box-shadow: 0 20px 36px -16px rgba(46, 22, 54, .7); 
 .scope-btn.active { background: var(--grad-brand); color: #fff; border-color: transparent; }
 .scope-btn.active:hover { color: #fff; }
 .arch-night { background: linear-gradient(180deg, #7A3B8F, #3A1A4A); box-shadow: 0 30px 60px -28px rgba(0, 0, 0, .6); }
+
+/* ---- SA monogram (real logo) ---- */
+.site-logo { display: flex; align-items: center; gap: 12px; }
+.site-logo img.logo-mark { width: 34px; height: auto; }
+.site-logo img.logo-word { width: 252px; }
+.footer-brand { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.footer-brand img.logo-mark { width: 40px; height: auto; }
+.side-brand { display: flex; align-items: center; gap: 10px; }
+.side-brand img.logo-mark { width: 28px; height: auto; }
+.side-brand img:not(.logo-mark) { width: 150px; }
+.bridal-arch-lines { display: grid; place-items: center; }
+.bridal-arch-lines .bridal-mark { width: 42%; height: auto; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); }
+.auth-mark { width: 43px; height: auto; }
+.auth-arch img { width: 46%; height: auto; }
+@media (max-width: 760px) { .site-logo img.logo-word { width: 170px; } .site-logo img.logo-mark { width: 28px; } }

@@ -31,7 +31,7 @@ export async function homePage(app: HTMLElement) {
         h('p', { class: 'hero-note' }, icon('check', 16), h('span', { text: 'Choose your artist and a free time. Your artist confirms the booking personally.' }))),
       h('div', { class: 'hero-visual', attrs: { 'aria-hidden': 'true' } },
         arch(h('div', { class: 'hero-arch-art' },
-          h('img', { attrs: { src: '/brand/sa-monogram.svg', alt: '', width: 220, height: 220 } })), { size: 'xl', tone: 'blush' }),
+          h('img', { attrs: { src: '/brand/sa-monogram.png', alt: '', width: 160, height: 210 } })), { size: 'xl', tone: 'blush' }),
         h('div', { class: 'hero-pros' }, pros.filter((p) => p.logo_path).slice(0, 4).map((p) => h('span', { class: 'hero-pro' }, proMark(p, 'sm')))))));
 
   // ------------------------------------------------------------ professionals
@@ -53,7 +53,7 @@ export async function homePage(app: HTMLElement) {
   // ------------------------------------------------------------ bridal
   const bridal = h('section', { class: 'band band-night', attrs: { id: 'bridal', 'aria-labelledby': 'bridal-title' } },
     h('div', { class: 'container bridal-grid' },
-      h('div', { class: 'bridal-art', attrs: { 'aria-hidden': 'true' } }, arch(h('span', { class: 'bridal-arch-lines' }), { size: 'lg', tone: 'night' })),
+      h('div', { class: 'bridal-art', attrs: { 'aria-hidden': 'true' } }, arch(h('span', { class: 'bridal-arch-lines' }, h('img', { class: 'bridal-mark', attrs: { src: '/brand/sa-monogram.png', alt: '', width: 120, height: 158 } })), { size: 'lg', tone: 'night' })),
       h('div', { class: 'bridal-copy' },
         h('h2', { class: 'band-title', attrs: { id: 'bridal-title' }, text: 'Bridal, by enquiry' }),
         h('p', { text: 'Every bride is planned individually. Tell us your date, the look you have in mind and who you would like, and the artist will come back to you with availability and a quote.' }),
