@@ -37,7 +37,7 @@ export function publicShell(app: HTMLElement, profile: PublicProfile | null, con
   const header = h('header', { class: 'site-header' },
     h('div', { class: 'site-header-inner' },
       h('a', { class: 'site-logo', attrs: { href: '/', 'aria-label': 'Shahina Ahmed Luxury Salon, home' } },
-        h('img', { attrs: { src: '/brand/shahina-ahmed-wordmark.svg', alt: '', width: 220, height: 50 } })),
+        h('img', { attrs: { src: '/brand/shahina-ahmed-wordmark.svg', alt: '', width: 220, height: 20 } })),
       nav,
       h('a', { class: 'staff-link', attrs: { href: '/signin' } }, icon('user', 16), h('span', { text: 'Staff sign in' })),
       toggle));
@@ -46,7 +46,7 @@ export function publicShell(app: HTMLElement, profile: PublicProfile | null, con
   const footer = h('footer', { class: 'site-footer' },
     h('div', { class: 'site-footer-inner' },
       h('div', { class: 'footer-brand' },
-        h('img', { attrs: { src: '/brand/shahina-ahmed-lockup-light.svg', alt: 'Shahina Ahmed Luxury Salon', width: 260, height: 70 } }),
+        h('img', { attrs: { src: '/brand/shahina-ahmed-lockup-light.svg', alt: 'Shahina Ahmed', width: 260, height: 38 } }),
         profile?.salon.city ? h('p', { class: 'footer-city', text: profile.salon.city }) : null),
       h('div', { class: 'footer-cols' },
         h('div', null, h('p', { class: 'footer-head', text: 'Visit' }),

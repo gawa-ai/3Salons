@@ -90,56 +90,41 @@ def write(name, content):
     print("wrote", name)
 
 
-# ------------------------------------------------------------------ stacked lockup
+# ------------------------------------------------------------------ stacked lockup (name + rule, no descriptor)
 def lockup(ink, accent):
     name_size = 120
-    d_name, w_name, b_name = text_paths(serif, "SHAHINA AHMED", name_size, tracking_em=0.09)
-    desc_size = 30
-    d_desc, w_desc, b_desc = text_paths(sans, "LUXURY SALON", desc_size, tracking_em=0.42)
+    _, w_name, b_name = text_paths(serif, "SHAHINA AHMED", name_size, tracking_em=0.09)
     pad = 24
-    W = max(w_name, w_desc) + pad * 2
-    cap_top = b_name[1]
+    W = w_name + pad * 2
     name_h = b_name[3] - b_name[1]
-    # layout: name, gap, rule with diamond, gap, descriptor
-    y_name = pad - cap_top
-    rule_y = pad + name_h + 34
-    y_desc = rule_y + 34 - b_desc[1]
-    H = y_desc + b_desc[3] + pad
-    xn = (W - w_name) / 2
-    xd = (W - w_desc) / 2
-    d_name, _, _ = text_paths(serif, "SHAHINA AHMED", name_size, 0.09, xn, y_name)
-    d_desc, _, _ = text_paths(sans, "LUXURY SALON", desc_size, 0.42, xd, y_desc)
+    y_name = pad - b_name[1]
+    rule_y = pad + name_h + 40
+    H = rule_y + 6 + pad
+    d_name, _, _ = text_paths(serif, "SHAHINA AHMED", name_size, 0.09, pad, y_name)
     cx = W / 2
-    half = w_desc / 2
+    half = w_name * 0.2
     dm = 6
     body = (f'<path fill="{ink}" d="{d_name}"/>\n'
-            f'<path fill="{ink}" d="{d_desc}"/>\n'
             f'<g fill="none" stroke="{accent}" stroke-width="1.6">'
             f'<line x1="{cx - half:.1f}" y1="{rule_y:.1f}" x2="{cx - dm - 10:.1f}" y2="{rule_y:.1f}"/>'
             f'<line x1="{cx + dm + 10:.1f}" y1="{rule_y:.1f}" x2="{cx + half:.1f}" y2="{rule_y:.1f}"/></g>\n'
             f'<path fill="{accent}" d="M{cx:.1f} {rule_y - dm:.1f}L{cx + dm:.1f} {rule_y:.1f}L{cx:.1f} {rule_y + dm:.1f}L{cx - dm:.1f} {rule_y:.1f}Z"/>')
-    return svg(W, H, body, "Shahina Ahmed Luxury Salon")
+    return svg(W, H, body, "Shahina Ahmed")
 
 write("shahina-ahmed-lockup.svg", lockup(CHARCOAL, BRONZE))
 write("shahina-ahmed-lockup-light.svg", lockup(IVORY, BRONZE_LIGHT))
 
 
-# ------------------------------------------------------------------ one-line wordmark (header)
+# ------------------------------------------------------------------ one-line wordmark (header): name only
 def wordmark(ink, accent):
     size = 64
     _, w_name, b_name = text_paths(serif, "SHAHINA AHMED", size, 0.08)
-    dsize = 19
-    _, w_desc, b_desc = text_paths(sans, "LUXURY SALON", dsize, 0.36)
     pad = 6
-    W = max(w_name, w_desc) + pad * 2
-    name_h = b_name[3] - b_name[1]
+    W = w_name + pad * 2
     y_name = pad - b_name[1]
-    y_desc = pad + name_h + 16 - b_desc[1]
-    H = y_desc + b_desc[3] + pad
-    d_name, _, _ = text_paths(serif, "SHAHINA AHMED", size, 0.08, (W - w_name) / 2, y_name)
-    d_desc, _, _ = text_paths(sans, "LUXURY SALON", dsize, 0.36, (W - w_desc) / 2, y_desc)
-    body = f'<path fill="{ink}" d="{d_name}"/>\n<path fill="{accent}" d="{d_desc}"/>'
-    return svg(W, H, body, "Shahina Ahmed Luxury Salon")
+    H = (b_name[3] - b_name[1]) + pad * 2
+    d_name, _, _ = text_paths(serif, "SHAHINA AHMED", size, 0.08, pad, y_name)
+    return svg(W, H, f'<path fill="{ink}" d="{d_name}"/>', "Shahina Ahmed")
 
 write("shahina-ahmed-wordmark.svg", wordmark(CHARCOAL, BRONZE))
 write("shahina-ahmed-wordmark-light.svg", wordmark(IVORY, BRONZE_LIGHT))

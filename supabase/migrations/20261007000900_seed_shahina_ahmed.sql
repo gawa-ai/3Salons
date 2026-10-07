@@ -18,7 +18,7 @@
 insert into app.salons (slug, name, tagline, timezone, country_code, booking_mode, city,
                         slot_interval_min, min_notice_min, max_days_ahead, hours_confirmed)
 values ('shahina-ahmed', 'Shahina Ahmed Luxury Salon',
-        'Hair, makeup and hijab styling for the moments that matter.',
+        'Your moment. Your signature look.',
         'Europe/London', '44', 'preview', 'Blackburn', 15, 120, 90, false)
 on conflict (slug) do nothing;
 

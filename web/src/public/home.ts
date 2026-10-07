@@ -22,8 +22,9 @@ export async function homePage(app: HTMLElement) {
   const hero = h('section', { class: 'hero', attrs: { 'aria-labelledby': 'hero-title' } },
     h('div', { class: 'container hero-grid' },
       h('div', { class: 'hero-copy' },
-        h('h1', { class: 'hero-title', attrs: { id: 'hero-title' }, text: salon.tagline ?? 'Hair, makeup and hijab styling for the moments that matter.' }),
-        h('p', { class: 'hero-lede', text: `${countWord(pros.length)} artists${salon.city ? ' in ' + salon.city : ''}. Party hair and makeup, hijab and saree styling, and bridal by enquiry.` }),
+        h('h1', { class: 'hero-title', attrs: { id: 'hero-title' } },
+          ...(salon.tagline ?? 'Your moment. Your signature look.').split(/(?<=\.)\s+/).map((line) => h('span', { class: 'hero-line', text: line }))),
+        h('p', { class: 'hero-lede', text: `Hair, makeup, hijab and saree styling${salon.city ? ' in ' + salon.city : ''}, tailored to you and your occasion. Choose your artist and book your appointment, or get in touch for bridal styling.` }),
         h('div', { class: 'hero-actions' },
           linkButton('Book an appointment', '/book', { size: 'lg' }),
           linkButton('Bridal enquiry', '/bridal', { variant: 'secondary', size: 'lg' })),
@@ -76,7 +77,6 @@ export async function homePage(app: HTMLElement) {
       h('div', null,
         h('h2', { class: 'band-title', attrs: { id: 'about-title' }, text: 'About the salon' })),
       h('div', { class: 'about-copy' },
-        h('p', { text: `${salon.name} is owned by Shahina Ahmed${salon.city ? ' and based in ' + salon.city : ''}.` }),
         h('p', { text: 'Each artist runs their own appointments. When you book online you choose the artist, the service and a free time, and your booking is held for you while the artist confirms it.' }),
         h('p', { text: 'For weddings and larger occasions, send a bridal enquiry so the artist can plan the day with you.' }))));
 
@@ -190,7 +190,3 @@ export function galleryGrid(items: { storage_path: string; media_type: string; a
     h('p', { class: 'gallery-caption', text: g.caption ? `${g.caption}, by ${g.professional}` : `By ${g.professional}` }))));
 }
 
-function countWord(n: number): string {
-  const w = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
-  return w[n] ?? String(n);
-}
