@@ -32,7 +32,6 @@ grant execute on all functions in schema pg_temp to anon, authenticated, service
 
 -- ---------------------------------------------------------------- fixtures
 select id as salon from app.salons where slug = 'shahina-ahmed' \gset
-select id as p_shahina from app.professionals where slug = 'shahina-ahmed' \gset
 select id as p_sofia from app.professionals where slug = 'sofia-mua' \gset
 select id as p_shirin from app.professionals where slug = 'shirin-jal' \gset
 select id as p_sabiha from app.professionals where slug = 'mi-hijabby-sabiha' \gset
@@ -97,12 +96,28 @@ select pg_temp.check((pg_temp.q(format($$select public.salon_claim_invite(%L)$$,
 -- ---------------------------------------------------------------- 2. public site (anon)
 reset role; set role anon; select pg_temp.login(null);
 select public.salon_public_profile('shahina-ahmed') as prof \gset
-select pg_temp.check((:'prof'::jsonb)->>'ok' = 'true' and jsonb_array_length((:'prof'::jsonb)->'professionals') = 4, '13 public profile lists 4 professionals');
+select pg_temp.check((:'prof'::jsonb)->>'ok' = 'true' and jsonb_array_length((:'prof'::jsonb)->'professionals') = 3 and not exists (select 1 from jsonb_array_elements((:'prof'::jsonb)->'professionals') x where x->>'slug' = 'shahina-ahmed'), '13 public profile lists the 3 artists, not the owner');
 select pg_temp.check((:'prof'::jsonb)#>'{salon,hours}' = 'null'::jsonb and (:'prof'::jsonb)#>>'{salon,address}' is null,
   '14 unconfirmed hours/address are not published');
 select pg_temp.check((select bool_and(s->>'price_pence' is null) from jsonb_array_elements((:'prof'::jsonb)->'professionals') p,
                        jsonb_array_elements(p->'services') s where s->>'price_kind' = 'enquire'), '15 bridal shows no price (enquire)');
 select pg_temp.check(position('client' in (:'prof')) = 0 and position('phone":"+' in (:'prof')) = 0, '16 public profile carries no client data');
+
+-- legacy data: a 'shahina-ahmed' professional from the first seed is hidden by the owner_not_bookable migration
+reset role;
+insert into app.professionals (salon_id, slug, display_name, short_name, specialty, color, sort_order)
+  values (:'salon', 'shahina-ahmed', 'Shahina Ahmed', 'Shahina', 'Hair & Makeup', 'bronze', 1);
+insert into app.services (salon_id, professional_id, name, category, duration_min, buffer_min, price_pence, price_kind, bookable_online, details_confirmed, sort_order)
+  select :'salon', id, 'Party Hair', 'hair', 60, 15, 5000, 'fixed', true, false, 1 from app.professionals where slug = 'shahina-ahmed';
+\i ../../supabase/migrations/20261007001200_owner_not_bookable.sql
+\i ../../supabase/migrations/20261007001200_owner_not_bookable.sql
+select pg_temp.check((select not active and not is_public and not online_booking from app.professionals where slug = 'shahina-ahmed')
+  and (select not bool_or(v.active) from app.services v join app.professionals p on p.id = v.professional_id where p.slug = 'shahina-ahmed'),
+  '16a legacy owner profile hidden and closed (nothing deleted, re-runnable)');
+set role anon; select pg_temp.login(null);
+select pg_temp.check(jsonb_array_length(public.salon_public_profile('shahina-ahmed')->'professionals') = 3
+  and (public.salon_public_slots('shahina-ahmed', 'shahina-ahmed', '00000000-0000-0000-0000-000000000000', '2030-01-01'))->>'ok' = 'false',
+  '16b owner cannot be opened or booked as an artist');
 
 select public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1') as sl \gset
 select pg_temp.check(jsonb_array_length((:'sl'::jsonb)->'slots') = 29, '17 60-min service 10:00-18:00 gives 29 start times', :'sl'::jsonb);
@@ -288,10 +303,10 @@ select pg_temp.check((public.salon_dash_service_save(:'salon', jsonb_build_objec
 select pg_temp.check(
   ((public.salon_dash_report(:'salon', null, :'d1', :'d2'))#>>'{totals,total}')::int =
   (select sum(((public.salon_dash_report(:'salon', p.id, :'d1', :'d2'))#>>'{totals,total}')::int)
-     from unnest(array[:'p_shahina', :'p_sofia', :'p_shirin', :'p_sabiha']::uuid[]) p(id))
+     from unnest(array[:'p_sofia', :'p_shirin', :'p_sabiha']::uuid[]) p(id))
   and ((public.salon_dash_report(:'salon', null, :'d1', :'d2'))#>>'{totals,booked_value_pence}')::int =
   (select sum(((public.salon_dash_report(:'salon', p.id, :'d1', :'d2'))#>>'{totals,booked_value_pence}')::int)
-     from unnest(array[:'p_shahina', :'p_sofia', :'p_shirin', :'p_sabiha']::uuid[]) p(id)),
+     from unnest(array[:'p_sofia', :'p_shirin', :'p_sabiha']::uuid[]) p(id)),
   '95 combined report == sum of per-profile reports');
 
 -- ---------------------------------------------------------------- 8. manual booking + customer link

@@ -26,7 +26,6 @@ with s as (select id from app.salons where slug = 'shahina-ahmed')
 insert into app.professionals (salon_id, slug, display_name, short_name, specialty, bio, instagram_url, logo_path, color, sort_order)
 select s.id, x.slug, x.display_name, x.short_name, x.specialty, x.bio, x.ig, x.logo, x.color, x.ord
 from s, (values
-  ('shahina-ahmed', 'Shahina Ahmed', 'Shahina', 'Hair & Makeup', null, null, '/brand/sa-monogram.svg', 'bronze', 1),
   ('sofia-mua', 'Sofia MUA', 'Sofia', 'Makeup Artist', null,
      'https://www.instagram.com/sofimusamua/', '/brand/pros/sofia-mua.webp', 'rose', 2),
   ('shirin-jal', 'Shirin Jal', 'Shirin', 'Hair & Makeup Artist', null,
@@ -44,10 +43,6 @@ select s.id, p.id, x.name, x.descr, x.cat, x.dur, x.buf, x.price, x.kind, x.kind
 from s
 join app.professionals p on p.salon_id = s.id
 join (values
-  ('shahina-ahmed',      'Party Hair',          'Hair styling for parties and occasions.',                  'hair',        60, 15, 5000, 'fixed',   1),
-  ('shahina-ahmed',      'Party Makeup',        'Makeup for parties and occasions.',                        'makeup',      60, 15, 5000, 'fixed',   2),
-  ('shahina-ahmed',      'Party Hair & Makeup', 'Hair styling and makeup together.',                        'hair_makeup', 120, 15, 9500, 'fixed',  3),
-  ('shahina-ahmed',      'Bridal',              'Bridal styling. Please send an enquiry.',                  'bridal',      60, 0, null, 'enquire',  9),
   ('sofia-mua',         'Party Hair',          'Hair styling for parties and occasions.',                  'hair',        60, 15, 5000, 'fixed',   1),
   ('sofia-mua',         'Party Makeup',        'Makeup for parties and occasions.',                        'makeup',      60, 15, 5000, 'fixed',   2),
   ('sofia-mua',         'Party Hair & Makeup', 'Hair styling and makeup together.',                        'hair_makeup', 120, 15, 9500, 'fixed',  3),

@@ -3,7 +3,7 @@
 -- The approval prompt for this migration was not answered (the tool asks a human for any SQL that
 -- contains DELETE/DROP POLICY), so these 4 functions and the photo/video bucket are not live yet.
 --
--- What it is: the exact same SQL as supabase/migrations/20261007000400 + 000500 (tested: 112 DB checks,
+-- What it is: the exact same SQL as supabase/migrations/20261007000400 + 000500 (tested: 114 DB checks,
 -- 33 browser checks). The DELETEs only replace one professional's own working hours, one time-off row,
 -- one gallery item, or the salon's opening hours, after the caller's identity has been checked.
 -- It does not delete any existing data when you run it. Safe to re-run.

@@ -26,7 +26,7 @@ same `not_found` error as a record that does not exist, so even its existence is
 
 ## Evidence
 
-**VERIFIED locally** (throwaway Postgres 16, `tests/db/run.sh`, 112/112, run repeatedly):
+**VERIFIED locally** (throwaway Postgres 16, `tests/db/run.sh`, 114/114, run repeatedly):
 checks 37–42 cover anon and no-membership denial. Checks 44–69 cover cross-profile denial on bookings, clients, messages, overview, report, team, audit and settings, including attempts to widen the professional filter. Checks 77 and 86–89 confirm staff cannot reassign, change prices or change ownership fields. Checks 102–105 cover disabled logins and storage folders. Check 112 runs two concurrent requests for one slot and gets exactly one booking.
 
 **VERIFIED in the browser** (`tests/e2e/run.cjs`, 33/33, real SQL behind a mock HTTP layer): S1–S7 confirm that staff have no All selector and no owner pages, that Sofia never sees Shirin's client, and that a token cannot widen scope.

@@ -8,7 +8,7 @@ Wala pang totoong portfolio photo sa site. Ang gallery at artist pages ay nagpap
 
 | Para kanino | Ano | Format |
 |---|---|---|
-| Bawat artist (Shahina, Sofia, Shirin, Sabiha) | 6–12 portfolio photos ng sariling trabaho (party hair, makeup, hijab, saree, bridal) | JPG/PNG/WebP, portrait 4:5, mga 1600 px ang haba ng gilid o mas malaki |
+| Bawat artist (Sofia, Shirin, Sabiha) | 6–12 portfolio photos ng sariling trabaho (party hair, makeup, hijab, saree, bridal) | JPG/PNG/WebP, portrait 4:5, mga 1600 px ang haba ng gilid o mas malaki |
 | Bawat artist, optional | 1–3 maikling video (before/after, styling process) | MP4/MOV, 9:16, hanggang 50 MB, 15–60 segundo |
 | Bawat artist, optional | Isang portrait/headshot para sa profile | JPG, square o 4:5 |
 | Salon | 3–6 photos ng loob ng salon (chair, mirror, lighting) para sa About section | JPG, landscape 3:2 |
@@ -23,7 +23,7 @@ Hindi gagamit ng stock o AI-generated photos bilang "trabaho" ng artists.
 | **Sofia MUA** | Logo at Instagram: "sofia musa" / @sofimusamua; price list: "Sofi" | "Sofia MUA" o "Sofia Musa" ang gusto niyang pangalan sa site? |
 | **Mi Hijabby Sabiha** | Logo: "Mi hijab BY SABIHA"; Instagram @mi.hijabbysabiha | "Mi Hijabby Sabiha" o "Mi Hijab by Sabiha"? |
 | **Shirin Jal** | Pareho sa logo | — |
-| **Shahina Ahmed** (bookable artist) | Brief: owner + tatlong profile. Price list: may sariling services si Shahina | Tumatanggap ba si Shahina ng sariling booking? (Kasalukuyan: oo, dahil nasa price list niya ang Party Hair/Makeup.) |
+| **Shahina Ahmed** | Owner/brand lang. Hindi bookable artist (kumpirmado ni JG: sa kanya ang tatlong salon) | — Naka-hide na ang dating profile niya (migration `owner_not_bookable`) |
 
 Ang pagpapalit ng pangalan ay isang update lang sa Studio → Professionals. Walang code change.
 
@@ -35,7 +35,7 @@ Ang pagpapalit ng pangalan ay isang update lang sa Studio → Professionals. Wal
 - **Duration** ng bawat service. Staging ngayon: Party Hair 60, Makeup 60, Hair & Makeup 120, Hijab 30, Saree 30 (+15 min buffer). Hindi pa kumpirmado (`details_confirmed = false`).
 - **Deposit / cancellation / lateness policy.** Wala sa site hanggang ibigay.
 - **Studio lang ba o may home visit/travel** para sa bridal?
-- **Instagram ni Shahina** (wala sa listahan).
+- **Ano ang eksaktong relasyon ng tatlong salon kay Shahina** (isang building ba, o magkakahiwalay?) para sa About text. Ang site ay nagsasabi lang na "owned by Shahina Ahmed".
 - **Login emails** ni Shahina at ng tatlong artist (para sa invitation codes).
 
 ## 4. Technical decisions para kay JG

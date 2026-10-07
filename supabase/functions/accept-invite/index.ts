@@ -9,6 +9,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const DEFAULT_ORIGINS = [
+  "https://3salon.netlify.app",
   "https://shahina-ahmed-salon.netlify.app",
   "http://localhost:5173",
   "http://localhost:4173",
@@ -20,7 +21,7 @@ const allowed = new Set(
 );
 
 function cors(origin: string | null): Record<string, string> {
-  const ok = origin && (allowed.has(origin) || /^https:\/\/[a-z0-9-]+--shahina-ahmed-salon\.netlify\.app$/.test(origin));
+  const ok = origin && (allowed.has(origin) || /^https:\/\/[a-z0-9-]+--(?:3salon|shahina-ahmed-salon)\.netlify\.app$/.test(origin));
   return {
     "Access-Control-Allow-Origin": ok ? origin! : DEFAULT_ORIGINS[0],
     "Access-Control-Allow-Methods": "POST, OPTIONS",

@@ -1,4 +1,4 @@
-PASS  P1 home lists 4 professionals
+PASS  P1 home lists 3 artists (owner is not one)
 PASS  P2 preview notice shown while booking_mode = preview
 PASS  P3 unconfirmed hours are not published as fact
 PASS  P4 service tabs switch artist

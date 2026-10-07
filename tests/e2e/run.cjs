@@ -48,7 +48,7 @@ async function main() {
     let { ctx, page } = await newPage();
     await page.goto(BASE + '/');
     await page.waitForSelector('.pro-card');
-    check((await page.locator('.pro-card').count()) === 4, 'P1 home lists 4 professionals');
+    check((await page.locator('.pro-card').count()) === 3, 'P1 home lists 3 artists (owner is not one)');
     check(await page.locator('text=Preview site.').isVisible(), 'P2 preview notice shown while booking_mode = preview');
     check(await page.locator('text=Opening hours will be published soon').isVisible(), 'P3 unconfirmed hours are not published as fact');
     await page.waitForTimeout(400);
@@ -151,7 +151,7 @@ async function main() {
     await page.waitForSelector('.cgrid');
     await page.fill('input.cal-date', bd); await page.dispatchEvent('input.cal-date', 'change');
     await page.waitForSelector('.event');
-    check((await page.locator('.cgrid-head').count()) === 4, 'O4 owner day calendar has one column per professional');
+    check((await page.locator('.cgrid-head').count()) === 3, 'O4 owner day calendar has one column per professional');
     await shot(page, 'desktop-owner-calendar-day', false);
     await page.click('.seg-btn:has-text("Week")');
     await page.waitForSelector('.cgrid-week');
