@@ -38,6 +38,10 @@ serif = instance(FONTS / "cormorantgaramond/CormorantGaramond[wght].ttf", 500)
 serif_semibold = instance(FONTS / "cormorantgaramond/CormorantGaramond[wght].ttf", 600)
 serif_italic = instance(FONTS / "cormorantgaramond/CormorantGaramond-Italic[wght].ttf", 500)
 sans = instance(FONTS / "manrope/Manrope[wght].ttf", 600)
+# Signature script for the salon name (Pinyon Script, SIL OFL). Set PINYON=/path/to/PinyonScript-Regular.ttf
+import os
+script = TTFont(os.environ.get("PINYON", str(FONTS / "pinyonscript/PinyonScript-Regular.ttf")))
+NAME = "Shahina Ahmed"
 
 
 def text_paths(font, text, size, tracking_em=0.0, x0=0.0, baseline=0.0, kerning=True):
@@ -92,15 +96,15 @@ def write(name, content):
 
 # ------------------------------------------------------------------ stacked lockup (name + rule, no descriptor)
 def lockup(ink, accent):
-    name_size = 120
-    _, w_name, b_name = text_paths(serif, "SHAHINA AHMED", name_size, tracking_em=0.09)
+    name_size = 150
+    _, w_name, b_name = text_paths(script, NAME, name_size, tracking_em=0.0, kerning=False)
     pad = 24
     W = w_name + pad * 2
     name_h = b_name[3] - b_name[1]
     y_name = pad - b_name[1]
     rule_y = pad + name_h + 40
     H = rule_y + 6 + pad
-    d_name, _, _ = text_paths(serif, "SHAHINA AHMED", name_size, 0.09, pad, y_name)
+    d_name, _, _ = text_paths(script, NAME, name_size, 0.0, pad, y_name, kerning=False)
     cx = W / 2
     half = w_name * 0.2
     dm = 6
@@ -117,13 +121,13 @@ write("shahina-ahmed-lockup-light.svg", lockup(IVORY, BRONZE_LIGHT))
 
 # ------------------------------------------------------------------ one-line wordmark (header): name only
 def wordmark(ink, accent):
-    size = 64
-    _, w_name, b_name = text_paths(serif, "SHAHINA AHMED", size, 0.08)
+    size = 84
+    _, w_name, b_name = text_paths(script, NAME, size, 0.0, kerning=False)
     pad = 6
     W = w_name + pad * 2
     y_name = pad - b_name[1]
     H = (b_name[3] - b_name[1]) + pad * 2
-    d_name, _, _ = text_paths(serif, "SHAHINA AHMED", size, 0.08, pad, y_name)
+    d_name, _, _ = text_paths(script, NAME, size, 0.0, pad, y_name, kerning=False)
     return svg(W, H, f'<path fill="{ink}" d="{d_name}"/>', "Shahina Ahmed")
 
 write("shahina-ahmed-wordmark.svg", wordmark(CHARCOAL, BRONZE))

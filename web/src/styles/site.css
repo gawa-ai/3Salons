@@ -182,7 +182,7 @@
 /* ---------------------------------------------------------------- footer */
 .site-footer { background: var(--night); color: #CFC4B9; padding: 64px 0 28px; }
 .site-footer-inner { width: min(1180px, 100% - 32px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1.4fr; gap: 40px; }
-.footer-brand img { width: 240px; height: auto; }
+.footer-brand img { width: 230px; height: auto; }
 .footer-city { margin-top: 14px; color: #E4DACF; font-size: 16px; }
 .footer-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .footer-head { color: #F2E9DF; font-weight: 700; font-size: 14px; margin-bottom: 12px; }
