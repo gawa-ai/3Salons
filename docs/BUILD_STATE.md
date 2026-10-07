@@ -25,5 +25,8 @@ Labels: **VERIFIED** = tested, at may resulta sa ibaba. **SUPPORTED** = sinusupo
 - SimplyBooked repo, Supabase project at Netlify site: walang binago.
 - Ang mga orihinal na logo ng artists (`brand/source-logos/`) ay hindi binago. Ang mga `web/public/brand/pros/*.webp|png` ay resized copies lang para sa web.
 
+## Sample data sa live (2026-10-07)
+7 bookings (3 confirmed, 4 awaiting confirmation) at 2 bridal enquiries, lahat gawa-gawa lang. Mga numero ay nasa reserved fictional range `+44 7700 9001xx` (07700 900101 hanggang 900113). Walang naipadala: lahat ng 13 notifications ay `not_connected`. Tatanggalin bago mag-live, kasama ang demo accounts; hihingi muna ng OK ni JG bago magbura (hindi ito automated na script).
+
 ## BAGO MAG-LIVE: tanggalin ang demo accounts
 Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang totoong owner invitation at bago i-on ang Live mode: i-disable o burahin ang apat na `@sample.com` users (Studio -> Team -> Disable login, o sa Supabase Auth). Hanggang may aktibong demo owner, tatanggihan ng `02_owner_invitation.sql` ang totoong owner (`owner_exists`).
