@@ -1,6 +1,7 @@
 import './styles/base.css';
 import './styles/site.css';
 import './styles/studio.css';
+import './styles/color.css';
 import { h, mount } from './lib/dom';
 import { route, setNotFound, startRouter, onNavigate } from './lib/router';
 import { linkButton } from './lib/ui';

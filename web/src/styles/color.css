@@ -1,0 +1,118 @@
+/* =====================================================================
+   Colour layer: richer palette drawn from the artists' own work
+   (rose, plum, emerald, gold). Loaded last, so it refines the base styles.
+   Text colours keep >= 4.5:1 contrast on their backgrounds.
+   ===================================================================== */
+:root {
+  --rose: #B3305F;        /* white text 5.9:1 */
+  --rose-2: #D4506F;
+  --plum: #5B2A86;        /* white text 10:1 */
+  --plum-deep: #2E1636;
+  --plum-mid: #4A1F45;
+  --emerald: #1D7560;     /* white text 5.5:1 */
+  --emerald-2: #2A9578;
+  --gold: #9A6A1B;        /* white text 4.9:1 */
+  --gold-2: #C28A2C;
+  --grad-brand: linear-gradient(135deg, #5B2A86 0%, #B3305F 100%);
+  --grad-rule: linear-gradient(90deg, #B3305F, #7B4BA0 55%, #C28A2C);
+}
+
+/* ---------------------------------------------------------------- buttons */
+.btn:not(.btn-secondary):not(.btn-ghost):not(.btn-link):not(.btn-danger):not(.btn-on-dark) {
+  background-image: var(--grad-brand); border-color: transparent; color: #fff;
+  box-shadow: 0 8px 20px -10px rgba(179, 48, 95, .55);
+}
+.btn:not(.btn-secondary):not(.btn-ghost):not(.btn-link):not(.btn-danger):not(.btn-on-dark):hover { filter: brightness(1.08); color: #fff; }
+.btn-secondary { --bd: var(--plum); --fg: var(--plum); background: rgba(255, 255, 255, .6); }
+.btn-secondary:hover { --bg: var(--plum); --bd: var(--plum); --fg: #fff; }
+.btn-link { --fg: var(--rose); }
+.btn-link:hover { --fg: var(--plum); }
+a { text-decoration-color: rgba(179, 48, 95, .45); }
+
+/* ---------------------------------------------------------------- public site */
+.preview-bar { background: linear-gradient(90deg, var(--plum-deep), var(--plum-mid)); }
+.site-header { background: rgba(255, 250, 248, .9); border-bottom-color: #EBD9E3; }
+.hero {
+  background:
+    radial-gradient(55% 55% at 88% 12%, #F7CFE0 0%, transparent 62%),
+    radial-gradient(48% 50% at 8% 95%, #DCD0F5 0%, transparent 62%),
+    radial-gradient(40% 40% at 58% 100%, #FCDDC2 0%, transparent 65%),
+    #FCF6F4;
+}
+.hero-line + .hero-line { background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .08em; }
+.hero-note .icon { color: var(--emerald); }
+.arch-blush { background: radial-gradient(120% 80% at 50% 0%, #FFF3F6 0%, #F6CFE0 50%, #D9C3EE 100%); }
+.hero .arch { box-shadow: 0 30px 70px -28px rgba(91, 42, 134, .45); }
+.hero-pro { border-color: #fff; }
+.arch-pro { background: linear-gradient(180deg, color-mix(in srgb, var(--pro, #85643F) 7%, #fff), color-mix(in srgb, var(--pro, #85643F) 36%, #fff)); box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--pro, #85643F) 70%, transparent); }
+.pro-name a:hover { color: var(--rose); }
+
+.band-title::after { content: ''; display: block; width: 64px; height: 4px; border-radius: 4px; margin-top: 16px; background: var(--grad-rule); }
+.band-night .band-title::after { background: linear-gradient(90deg, #F0B3CB, #C9A7E8, #E3B964); }
+#professionals { background: linear-gradient(180deg, #FDF7F5 0%, #F3EAF9 100%); }
+#services, .band-stone { background: linear-gradient(135deg, #F8E7EE 0%, #EDE3F8 55%, #FBE6D3 100%); }
+.band-night { background: radial-gradient(60% 80% at 15% 20%, rgba(214, 80, 111, .35), transparent 60%), radial-gradient(50% 70% at 90% 90%, rgba(123, 75, 160, .45), transparent 60%), linear-gradient(135deg, #2E1636, #4A1F45 60%, #34162F); color: #F6ECF2; }
+#gallery { background: linear-gradient(180deg, #FFF1F4 0%, #F1E8FA 100%); }
+#contact { background: linear-gradient(180deg, #FCF6F4 0%, #FDE9D8 100%); }
+.site-footer { background: linear-gradient(135deg, #2E1636, #3C1A3F 60%, #4A1F45); }
+.pro-dot { box-shadow: 0 0 0 3px rgba(255, 255, 255, .7); }
+
+/* ---------------------------------------------------------------- studio */
+.studio-body { background: linear-gradient(180deg, #F7F0F6 0%, #F2EAF4 100%); }
+.topbar { background: rgba(247, 240, 246, .92); border-bottom-color: #E6D6E6; }
+.top-title { color: var(--plum-deep); }
+.sidebar { background: linear-gradient(180deg, #2E1636 0%, #4A1F45 62%, #5E2347 100%); border-right: 0; }
+.side-brand { border-bottom-color: rgba(255, 255, 255, .12); }
+.side-link { color: #EBDDEE; }
+.side-link .icon { color: #F0B3CB; }
+.side-link:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.side-link.active { background: linear-gradient(90deg, #C23B73, #8B4AB0); color: #fff; box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .6); }
+.side-link.active .icon { color: #fff; }
+.side-foot { border-top-color: rgba(255, 255, 255, .12); }
+.side-name { color: #fff; }
+.side-role { color: #D9C2DE; }
+.side-avatar { background: rgba(255, 255, 255, .92); }
+.side-foot-links a { color: #E8D3EC; }
+.side-foot-links .btn { color: #fff; }
+.side-foot-links .btn-ghost:hover { --bg: rgba(255, 255, 255, .14); --fg: #fff; }
+
+.panel { background: linear-gradient(90deg, #B3305F, #7B4BA0 55%, #C28A2C) top / 100% 3px no-repeat border-box, var(--white); border-color: #EBDDEA; padding-top: 23px; box-shadow: 0 10px 28px -20px rgba(91, 42, 134, .45); }
+.panel-title .icon { color: var(--rose); }
+
+.tile { border: 0; color: #fff; padding: 20px; box-shadow: 0 16px 30px -18px rgba(46, 22, 54, .6); position: relative; overflow: hidden; }
+.tile::after { content: ''; position: absolute; width: 140px; height: 140px; border-radius: 50%; right: -40px; top: -50px; background: rgba(255, 255, 255, .13); pointer-events: none; }
+.tiles > .tile:nth-child(4n+1) { background: linear-gradient(135deg, #3F2A7A, #6B3FA0); }
+.tiles > .tile:nth-child(4n+2) { background: linear-gradient(135deg, #B3305F, #DB5C7C); }
+.tiles > .tile:nth-child(4n+3) { background: linear-gradient(135deg, #1D7560, #2F9A7C); }
+.tiles > .tile:nth-child(4n+4) { background: linear-gradient(135deg, #8F5E14, #BE8629); }
+.tile .tile-label { color: rgba(255, 255, 255, .95); font-weight: 700; }
+.tile .tile-sub { color: rgba(255, 255, 255, .9); }
+.tile .tile-value { color: #fff; }
+a.tile:hover { color: #fff; box-shadow: 0 20px 36px -16px rgba(46, 22, 54, .7); transform: translateY(-2px); }
+.tile-attention { background: linear-gradient(135deg, #C2571B, #E08A2E) !important; }
+.tile-attention .tile-value { color: #fff; }
+
+.chip.active, .seg-btn.active { background: var(--grad-brand); color: #fff; border-color: transparent; }
+.chip:hover { border-color: var(--rose); color: var(--rose); }
+.chip.active:hover { color: #fff; }
+
+/* ---------------------------------------------------------------- sign in */
+.auth { background: linear-gradient(180deg, #FCF6F4, #F3EAF9); }
+.auth-art {
+  background:
+    radial-gradient(60% 50% at 20% 15%, rgba(214, 80, 111, .55), transparent 62%),
+    radial-gradient(55% 55% at 90% 85%, rgba(123, 75, 160, .6), transparent 62%),
+    radial-gradient(40% 40% at 70% 20%, rgba(227, 185, 100, .28), transparent 65%),
+    linear-gradient(160deg, #2E1636, #4A1F45);
+}
+.auth-arch { border-color: rgba(247, 205, 224, .6); background: radial-gradient(70% 50% at 50% 30%, rgba(247, 205, 224, .28), transparent 70%); }
+.auth-title { color: var(--plum-deep); }
+.auth-panel { background: rgba(255, 255, 255, .55); }
+
+/* dark bands, filter chips, bridal arch */
+.btn-secondary.btn-on-dark { --fg: #fff; --bd: rgba(255, 255, 255, .75); background: transparent; }
+.btn-secondary.btn-on-dark:hover { --bg: #fff; --fg: var(--plum-deep); --bd: #fff; background: #fff; }
+.scope-btn:hover { border-color: var(--rose); color: var(--rose); }
+.scope-btn.active { background: var(--grad-brand); color: #fff; border-color: transparent; }
+.scope-btn.active:hover { color: #fff; }
+.arch-night { background: linear-gradient(180deg, #7A3B8F, #3A1A4A); box-shadow: 0 30px 60px -28px rgba(0, 0, 0, .6); }

@@ -86,7 +86,7 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
 
   const sidebar = h('aside', { class: 'sidebar', attrs: { id: 'studio-nav', 'aria-label': 'Studio' } },
     h('a', { class: 'side-brand', attrs: { href: '/studio', 'aria-label': 'Studio overview' } },
-      h('img', { attrs: { src: '/brand/shahina-ahmed-wordmark.svg', alt: 'Shahina Ahmed', width: 190, height: 17 } })),
+      h('img', { attrs: { src: '/brand/shahina-ahmed-wordmark-light.svg', alt: 'Shahina Ahmed', width: 190, height: 17 } })),
     h('nav', { attrs: { 'aria-label': 'Studio sections' } }, navList),
     h('div', { class: 'side-foot' }, identity,
       h('div', { class: 'side-foot-links' },
