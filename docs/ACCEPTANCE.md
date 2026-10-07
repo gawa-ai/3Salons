@@ -3,7 +3,7 @@
 Hanggang hindi pa naka-tsek lahat ng nasa ibaba, nananatiling `booking_mode = 'preview'` (may "Preview site" banner, at test booking lang ang bawat booking) at walang SMS na naipapadala.
 
 ## A. Setup (JG)
-- [ ] Na-run ang `supabase/manual/01_pending_functions_and_storage.sql` sa "3 Salons".
+- [x] Na-run ang `supabase/manual/01_pending_functions_and_storage.sql` sa "3 Salons" (verified live 2026-10-07).
 - [ ] Naka-link ang Netlify site `3salon` (`https://3salon.netlify.app`) sa `gawa-ai/3Salons` (main), at successful ang deploy.
 - [ ] Supabase Auth: Site URL `https://3salon.netlify.app` + `/reset` redirect, naka-off ang public sign-ups, custom SMTP.
 - [ ] Owner invitation (`02_owner_invitation.sql`), at naka-sign in si Shahina sa `/join`.
