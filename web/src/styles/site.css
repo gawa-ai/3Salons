@@ -154,10 +154,9 @@
 @media (max-width: 760px) { .bridal-grid { grid-template-columns: 1fr; } .bridal-art .arch-lg { width: 200px; } }
 
 /* ---------------------------------------------------------------- gallery */
-.gallery-grid { list-style: none; padding: 0; margin: 0; columns: 3 260px; column-gap: 18px; }
-.gallery-item { break-inside: avoid; margin-bottom: 18px; }
+.gallery-grid { list-style: none; padding: 0; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; max-width: 920px; }
+.gallery-item { min-width: 0; }
 .gallery-item img, .gallery-item video { width: 100%; height: auto; border-radius: var(--r-md); background: var(--stone); }
-.gallery-item:nth-child(3n + 1) img { border-radius: var(--arch); }
 .gallery-caption { font-size: 13px; color: var(--muted); margin-top: 8px; }
 .gallery-empty { border: 1px dashed var(--stone-2); border-radius: var(--r-lg); padding: 40px 24px; text-align: center; display: grid; justify-items: center; gap: 8px; }
 .gallery-empty-title { font-family: var(--serif); font-size: 26px; }
