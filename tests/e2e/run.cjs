@@ -56,7 +56,7 @@ async function main() {
     await page.click('#tab-shirin-jal');
     check(await page.locator('.menu-name', { hasText: 'Party Hijab' }).isVisible(), 'P4 service tabs switch artist');
     await page.goto(BASE + '/artists/mi-hijabby-sabiha');
-    await page.waitForSelector('h1:has-text("Mi Hijabby Sabiha")');
+    await page.waitForSelector('h1:has-text("Sabiha Patel")');
     await shot(page, 'desktop-artist-sabiha');
 
     // booking flow

@@ -128,10 +128,11 @@
 .menu-row:last-child { border-bottom: 0; }
 .menu-name { font-family: var(--serif); font-size: 24px; font-weight: 500; }
 .menu-desc { color: var(--muted); font-size: 14px; margin-top: 2px; }
-.menu-side { display: grid; grid-template-columns: auto auto; grid-template-areas: 'price btn' 'time btn'; column-gap: 20px; align-items: center; justify-items: end; }
+.menu-side { display: grid; grid-template-columns: auto auto; grid-template-areas: 'price btn' 'time btn' 'note btn'; column-gap: 20px; align-items: center; justify-items: end; }
 .menu-price { grid-area: price; font-family: var(--serif); font-size: 24px; font-weight: 600; font-variant-numeric: lining-nums; }
 .menu-time { grid-area: time; color: var(--muted); font-size: 13px; }
 .menu-side .btn { grid-area: btn; }
+.menu-note { grid-area: note; }
 @media (max-width: 560px) {
   .menu-row { grid-template-columns: 1fr; }
   .menu-side { justify-items: start; grid-template-columns: auto 1fr; }

@@ -40,7 +40,9 @@ export async function homePage(app: HTMLElement) {
     h('div', { class: 'container' },
       h('div', { class: 'band-head' },
         h('h2', { class: 'band-title', attrs: { id: 'pros-title' }, text: 'Our professionals' }),
-        h('p', { class: 'band-lede', text: 'Each artist keeps their own diary. Pick the person you want and book straight into their free times.' })),
+        h('div', { class: 'band-lede' },
+          h('h3', { class: 'band-lede-title', text: 'Book Directly with Your Favourite Artist' }),
+          h('p', { text: 'Each artist manages their own diary, so you can choose the person you’d like to book with and select a time that suits you from their available appointments. Simple, convenient, and hassle-free!' }))),
       h('ul', { class: 'pro-grid' }, pros.map((p) => h('li', null, proCard(p))))));
 
   // ------------------------------------------------------------ services (tabs per artist)
@@ -61,7 +63,7 @@ export async function homePage(app: HTMLElement) {
         h('p', { text: 'Simply share your wedding date/time, your desired look and your preferred artist. They’ll be in touch to discuss availability and provide a personalised quote.' }),
         h('p', { class: 'bridal-closing', text: 'Let’s create your perfect bridal look together!' }),
         h('ul', { class: 'bridal-list' },
-          pros.filter((p) => p.services.some((s) => s.category === 'bridal')).map((p) => h('li', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), h('span', { text: `${p.display_name}${p.specialty ? ', ' + p.specialty.toLowerCase() : ''}` })))),
+          pros.map((p) => h('li', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), h('span', { text: `${p.display_name}${p.specialty ? ' - ' + p.specialty : ''}` })))),
         linkButton('Send a bridal enquiry', '/bridal', { variant: 'secondary', size: 'lg', class: 'btn-on-dark' }))));
 
   // ------------------------------------------------------------ gallery
@@ -135,14 +137,14 @@ function proCard(p: PublicPro) {
 export function serviceRows(p: PublicPro) {
   return h('ul', { class: 'menu' }, p.services.map((s) => h('li', { class: 'menu-row' },
     h('div', { class: 'menu-main' },
-      h('h4', { class: 'menu-name', text: s.name }),
-      s.description ? h('p', { class: 'menu-desc', text: s.description }) : null),
+      h('h4', { class: 'menu-name', text: s.name })),
     h('div', { class: 'menu-side' },
       h('p', { class: 'menu-price', text: s.price_label }),
+      s.description ? h('p', { class: 'menu-note', text: s.description }) : null,
       s.price_kind !== 'enquire' ? h('p', { class: 'menu-time', text: durationLabel(s.duration_min) }) : null,
       s.bookable_online
         ? linkButton('Book', `/book?artist=${p.slug}&service=${s.id}`, { variant: 'secondary', size: 'sm' })
-        : linkButton('Enquire', `/bridal?artist=${p.slug}`, { variant: 'ghost', size: 'sm' })))));
+        : linkButton('Enquire', `/bridal?artist=${p.slug}${s.category === 'bridal' ? '' : `&want=${encodeURIComponent(s.name)}`}`, { variant: 'ghost', size: 'sm' })))));
 }
 
 function serviceTabs(pros: PublicPro[]) {
@@ -193,7 +195,7 @@ async function renderGallery(el: HTMLElement, pros: PublicPro[]) {
           icon('instagram', 18), h('span', { text: p.display_name })))))));
     return;
   }
-  mount(el, galleryGrid(items.slice(0, 12)));
+  mount(el, galleryGrid(shahinaFirst(items).slice(0, 12)));
 }
 
 export function galleryGrid(items: { storage_path: string; media_type: string; alt_text: string; caption: string | null; professional: string }[]) {
@@ -204,3 +206,8 @@ export function galleryGrid(items: { storage_path: string; media_type: string; a
     h('p', { class: 'gallery-caption', text: g.caption ? (/\bby\b/i.test(g.caption) ? g.caption : `${g.caption}, by ${g.professional}`) : `By ${g.professional}` }))));
 }
 
+
+/** Shahina's own work always leads the gallery; the rest keep their order. */
+export function shahinaFirst<T extends { professional_slug?: string }>(items: T[]): T[] {
+  return [...items.filter((g) => g.professional_slug === 'shahina-ahmed'), ...items.filter((g) => g.professional_slug !== 'shahina-ahmed')];
+}

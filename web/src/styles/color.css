@@ -50,7 +50,8 @@ a { text-decoration-color: rgba(122, 92, 34, .45); }
 .arch-blush { background: radial-gradient(120% 80% at 50% 0%, #FFFDF9 0%, #F1E6D3 50%, #E2D2B6 100%); }
 .hero .arch { box-shadow: 0 30px 70px -28px rgba(34, 28, 26, .4); }
 .hero-pro { border-color: #fff; }
-.arch-pro { background: linear-gradient(180deg, color-mix(in srgb, var(--pro, #85643F) 7%, #fff), color-mix(in srgb, var(--pro, #85643F) 30%, #fff)); box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--pro, #85643F) 70%, transparent); }
+.arch-pro { background: linear-gradient(180deg, #FFFDF9, #EFE6D6); box-shadow: 0 18px 40px -24px rgba(34, 28, 26, .45); }
+.arch-pro::after { border-color: rgba(122, 92, 34, .22); }
 .pro-name a:hover { color: var(--rose); }
 
 .band-title::after { content: ''; display: block; width: 64px; height: 4px; border-radius: 4px; margin-top: 16px; background: var(--grad-rule); }
@@ -139,3 +140,9 @@ a.tile:hover { color: #fff; box-shadow: 0 20px 36px -16px rgba(27, 23, 21, .7); 
 @media (max-width: 760px) { .site-logo img.logo-word { width: 150px; } .site-logo img.logo-mark { width: 28px; } }
 
 .logo-word, .side-brand img:not(.logo-mark), .footer-brand img:not(.logo-mark), .auth-card img[src*='lockup'] { height: auto; }
+
+/* ---- round 2 (client brief 2026-10-14) ---- */
+.pro-logo:not(.pro-logo-text) { border: 3px solid #fff; box-sizing: border-box; background: #fff; }   /* same clean white ring for every artist */
+.band-lede-title { font-family: var(--serif); font-size: 24px; font-weight: 500; color: var(--plum-deep); margin: 0 0 6px; }
+.menu-note { color: var(--muted); font-size: 13px; margin: 2px 0 0; max-width: 24ch; text-align: right; }
+@media (max-width: 560px) { .menu-note { text-align: left; } }

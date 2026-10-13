@@ -141,6 +141,20 @@ delete from app.gallery_items where storage_path like '%/owner-upload.jpg';
 set role anon; select pg_temp.login(null);
 select pg_temp.check(jsonb_array_length(public.salon_public_gallery('shahina-ahmed')->'items') = 4, '16g the public gallery returns exactly the four featured photos');
 reset role;
+\i ../../supabase/migrations/20261014050000_client_feedback_round2.sql
+\i ../../supabase/migrations/20261014050000_client_feedback_round2.sql
+select pg_temp.check((select display_name from app.professionals where slug = 'mi-hijabby-sabiha') = 'Sabiha Patel'
+  and (select specialty from app.professionals where slug = 'shirin-jal') = 'Hair and Makeup Artist / Hijab Stylist'
+  and (select specialty from app.professionals where slug = 'mi-hijabby-sabiha') = 'Hijab Stylist',
+  '16h Sabiha Patel and the four roles are in place (re-run safe)');
+select pg_temp.check((select count(*) from app.services sv join app.professionals p on p.id = sv.professional_id
+                       where p.slug = 'shahina-ahmed' and sv.name = 'Training' and sv.price_kind = 'enquire' and not sv.bookable_online) = 1
+  and (select count(*) from app.services where description like '%for parties and occasions%' or description like 'Bridal styling%') = 0
+  and (select description from app.services sv join app.professionals p on p.id = sv.professional_id where p.slug = 'shahina-ahmed' and sv.name = 'Party Hair') = 'Hair extensions available at an extra cost',
+  '16i Training is enquiry-only (one row), old descriptions cleared, extension note kept');
+select pg_temp.check((select caption from app.gallery_items where storage_path = '/gallery/shahina-ahmed/featured-1.jpg') = 'Makeup by Shahina Ahmed, hijab by Sabiha Patel'
+  and (select sort_order from app.gallery_items where storage_path = '/gallery/shahina-ahmed/featured-1.jpg') = 1,
+  '16j Shahina photo is first and credits hijab by Sabiha Patel');
 set role anon; select pg_temp.login(null);
 
 select public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1') as sl \gset

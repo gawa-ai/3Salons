@@ -25,7 +25,7 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
   const fEmail = field({ label: 'Email', name: 'email', type: 'email', autocomplete: 'email' });
   const fDate = field({ label: 'Event date', name: 'event_date', type: 'date', min: profile.salon.today, hint: 'If you are not sure yet, leave it blank.' });
   const fLoc = field({ label: 'Where is the event?', name: 'event_location', maxlength: 120, placeholder: 'Town or venue' });
-  const fWant = field({ label: 'What would you like?', name: 'services_wanted', maxlength: 200, placeholder: 'For example bridal hair and makeup, hijab styling, family members' });
+  const fWant = field({ label: 'What would you like?', name: 'services_wanted', value: query.get('want') ?? '', maxlength: 200, placeholder: 'For example bridal hair and makeup, hijab styling, family members' });
   const fMsg = textarea({ label: 'Tell us more', name: 'message', rows: 4, maxlength: 1500, placeholder: 'Timings, number of people, the look you have in mind…' });
   const honey = h('div', { class: 'honeypot', attrs: { 'aria-hidden': 'true' } }, h('label', null, 'Company', h('input', { attrs: { type: 'text', name: 'company', tabindex: '-1', autocomplete: 'off' } })));
   const err = h('div', { attrs: { 'aria-live': 'assertive' } });
