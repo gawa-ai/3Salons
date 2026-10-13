@@ -46,7 +46,7 @@ export async function signInPage(app: HTMLElement) {
       if (!primaryMembership(m)) {
         await signOut();
         setBusy(submit, false);
-        mount(err, notice('error', 'This account does not have access to the salon studio. If you were invited, use your invitation code.'));
+        mount(err, notice('error', 'This account does not have access to the studio. If you were invited, use your invitation code.'));
         return;
       }
       navigate('/studio', { replace: true });
@@ -55,7 +55,7 @@ export async function signInPage(app: HTMLElement) {
       mount(err, notice('error', (ex as Error).message));
     }
   });
-  authShell(app, 'Staff sign in', 'For Shahina and the salon’s artists. Each person signs in with their own account.', [form]);
+  authShell(app, 'Staff sign in', 'For Shahina and the studio’s artists. Each person signs in with their own account.', [form]);
 }
 
 // --------------------------------------------------------------------- accept invitation
@@ -75,7 +75,7 @@ export async function joinPage(app: HTMLElement, query: URLSearchParams) {
         navigate('/studio', { replace: true });
       } catch (ex) { setBusy(submit, false); mount(err, notice('error', (ex as Error).message)); }
     });
-    authShell(app, 'Use an invitation', `You are signed in as ${signedIn.user.email}. Enter the code the salon owner gave you.`, [form]);
+    authShell(app, 'Use an invitation', `You are signed in as ${signedIn.user.email}. Enter the code the studio owner gave you.`, [form]);
     return;
   }
 
@@ -116,7 +116,7 @@ export async function joinPage(app: HTMLElement, query: URLSearchParams) {
       mount(err, notice('error', (ex as Error).message));
     }
   });
-  authShell(app, 'Create your studio account', 'The salon owner gives each artist a one-time invitation code. It works once, for the invited email address.', [form]);
+  authShell(app, 'Create your studio account', 'The studio owner gives each artist a one-time invitation code. It works once, for the invited email address.', [form]);
 }
 
 // --------------------------------------------------------------------- forgot / reset

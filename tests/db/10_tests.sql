@@ -97,8 +97,8 @@ select pg_temp.check((pg_temp.q(format($$select public.salon_claim_invite(%L)$$,
 reset role; set role anon; select pg_temp.login(null);
 select public.salon_public_profile('shahina-ahmed') as prof \gset
 select pg_temp.check((:'prof'::jsonb)->>'ok' = 'true' and jsonb_array_length((:'prof'::jsonb)->'professionals') = 4 and (:'prof'::jsonb)#>>'{professionals,0,slug}' = 'shahina-ahmed', '13 public profile lists Shahina first plus the 3 artists');
-select pg_temp.check((:'prof'::jsonb)#>'{salon,hours}' = 'null'::jsonb and (:'prof'::jsonb)#>>'{salon,address}' is null,
-  '14 unconfirmed hours/address are not published');
+select pg_temp.check((:'prof'::jsonb)#>'{salon,hours}' = 'null'::jsonb and (:'prof'::jsonb)#>>'{salon,address}' = '199 Preston New Road, Blackburn, BB2 6BN',
+  '14 unconfirmed hours are not published; confirmed address is');
 select pg_temp.check((select bool_and(s->>'price_pence' is null) from jsonb_array_elements((:'prof'::jsonb)->'professionals') p,
                        jsonb_array_elements(p->'services') s where s->>'price_kind' = 'enquire'), '15 bridal shows no price (enquire)');
 select pg_temp.check(position('client' in (:'prof')) = 0 and position('phone":"+' in (:'prof')) = 0, '16 public profile carries no client data');
@@ -116,8 +116,31 @@ select pg_temp.check(jsonb_array_length(public.salon_public_profile('shahina-ahm
   and (select x->>'slug' from jsonb_array_elements(public.salon_public_profile('shahina-ahmed')->'professionals') x limit 1) = 'shahina-ahmed',
   '16b Shahina is restored as the first public professional (re-runnable)');
 reset role;
-select pg_temp.check((select count(*) from app.gallery_items g join app.professionals p on p.id = g.professional_id where p.slug = 'shahina-ahmed') = 17,
-  '16c Shahina gallery has 17 items and re-running adds no duplicates');
+select pg_temp.check((select count(*) from app.gallery_items g join app.professionals p on p.id = g.professional_id where p.slug = 'shahina-ahmed') = 18,
+  '16c Shahina gallery has 18 items (17 earlier + the featured photo) and re-running adds no duplicates');
+
+-- client feedback round 1: copy, name, address and a gallery limited to the four photos the client sent
+select pg_temp.check((select count(*) from app.gallery_items where published and storage_path like '/gallery/%') = 4
+  and (select count(*) from app.gallery_items where storage_path like '/gallery/%') = 46
+  and (select count(distinct professional_id) from app.gallery_items where published and storage_path like '%/featured-1.jpg') = 4,
+  '16d only the four featured photos are published; the other 42 are hidden, not deleted');
+select pg_temp.check((select display_name from app.professionals where slug = 'sofia-mua') = 'Sofia Musa'
+  and (select tagline from app.salons where slug = 'shahina-ahmed') = 'Your Beauty. Your Style. Your Special Moment.'
+  and (select address from app.salons where slug = 'shahina-ahmed') = '199 Preston New Road, Blackburn, BB2 6BN',
+  '16e Sofia Musa, new headline and the confirmed address are in place (slug unchanged)');
+-- owner edits survive a re-run: a custom headline, and a photo uploaded through Studio (non-static path)
+update app.salons set tagline = 'Custom headline.' where slug = 'shahina-ahmed';
+insert into app.gallery_items (salon_id, professional_id, storage_path, media_type, alt_text)
+select p.salon_id, p.id, p.salon_id || '/' || p.id || '/owner-upload.jpg', 'image', 'Owner upload' from app.professionals p where p.slug = 'sofia-mua';
+\i ../../supabase/migrations/20261013194500_client_feedback_round1.sql
+select pg_temp.check((select tagline from app.salons where slug = 'shahina-ahmed') = 'Custom headline.'
+  and (select published from app.gallery_items where storage_path like '%/owner-upload.jpg'),
+  '16f re-running the migration keeps an owner-edited headline and owner-uploaded photos');
+update app.salons set tagline = 'Your Beauty. Your Style. Your Special Moment.' where slug = 'shahina-ahmed';
+delete from app.gallery_items where storage_path like '%/owner-upload.jpg';
+set role anon; select pg_temp.login(null);
+select pg_temp.check(jsonb_array_length(public.salon_public_gallery('shahina-ahmed')->'items') = 4, '16g the public gallery returns exactly the four featured photos');
+reset role;
 set role anon; select pg_temp.login(null);
 
 select public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1') as sl \gset

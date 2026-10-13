@@ -55,7 +55,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
   publicShell(app, profile, [h('section', { class: 'book' },
     h('div', { class: 'container book-head' },
       h('h1', { class: 'page-title', text: 'Book an appointment' }),
-      h('p', { class: 'muted', text: 'Choose your artist, service and a free time. Your booking is held for you while the artist confirms it.' }),
+      h('p', { class: 'muted', text: 'Choose your artist, service and time. Your booking is held for you while the artist confirms it.' }),
       progress),
     h('div', { class: 'container book-grid' }, stage, summary))]);
 
@@ -87,7 +87,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     const rows: Node[] = [];
     if (st.pro) rows.push(h('div', { class: 'sum-pro' }, proMark(st.pro, 'sm'), h('div', null, h('p', { class: 'sum-strong', text: st.pro.display_name }), st.pro.specialty ? h('p', { class: 'muted small', text: st.pro.specialty }) : null)));
     if (st.service) rows.push(h('div', { class: 'sum-row' }, h('span', { text: st.service.name }), h('span', { class: 'sum-strong', text: st.service.price_label })),
-      h('p', { class: 'muted small', text: `About ${durationLabel(st.service.duration_min)}` }));
+      h('p', { class: 'muted small', text: durationLabel(st.service.duration_min) }));
     if (st.date && st.time) rows.push(h('div', { class: 'sum-when' }, icon('calendar', 17), h('span', { text: `${formatDateLong(st.date)}, ${st.timeLabel}` })));
     mount(summary, h('div', { class: 'sum-card' },
       h('p', { class: 'sum-title', text: 'Your booking' }),
@@ -104,7 +104,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
           proMark(p, 'sm'),
           h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: p.display_name }), p.specialty ? h('span', { class: 'choice-sub', text: p.specialty }) : null),
           icon('chevronRight', 18)))))
-        : notice('info', 'Online booking is not available right now. Please send an enquiry and the salon will get back to you.'),
+        : notice('info', 'Online booking is not available right now. Please send an enquiry and the studio will get back to you.'),
       h('p', { class: 'book-alt' }, 'Planning a wedding? ', h('a', { attrs: { href: '/bridal' }, text: 'Send a bridal enquiry' }), ' instead.')];
   }
 
@@ -117,7 +117,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       h('ul', { class: 'choice-list' }, online.map((s) => h('li', null,
         h('button', { class: ['choice', 'choice-service', st.service?.id === s.id && 'selected'], attrs: { type: 'button', 'aria-pressed': String(st.service?.id === s.id) },
           on: { click: () => { if (st.service?.id !== s.id) { st.service = s; st.date = null; st.time = null; st.idem = newIdempotencyKey(); } syncUrl(); go(3); } } },
-          h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `About ${durationLabel(s.duration_min)}${s.description ? '. ' + s.description : ''}` })),
+          h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `${durationLabel(s.duration_min)}${s.description ? '. ' + s.description : ''}` })),
           h('span', { class: 'choice-price', text: s.price_label }))))),
       enquire.length ? h('div', { class: 'enquire-box' }, icon('heart', 18), h('p', null, `${enquire.map((s) => s.name).join(', ')} ${enquire.length > 1 ? 'are' : 'is'} by enquiry. `, h('a', { attrs: { href: `/bridal?artist=${p.slug}` }, text: 'Send an enquiry' }))) : null,
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => go(1) }))];
@@ -218,7 +218,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     const fPhone = field({ label: 'Mobile number', name: 'phone', type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel', value: st.phone, hint: 'Used only for this booking, for example to confirm or change it.' });
     const fEmail = field({ label: 'Email', name: 'email', type: 'email', autocomplete: 'email', value: st.email, maxlength: 254 });
     const fNote = textarea({ label: 'Anything the artist should know?', name: 'note', value: st.note, maxlength: 500, rows: 3, placeholder: 'For example the occasion, the look you have in mind, or hair length.' });
-    const cMarketing = checkbox({ name: 'marketing', checked: st.marketing, label: 'Send me occasional news and offers from the salon.', hint: 'Optional. This does not affect your booking.' });
+    const cMarketing = checkbox({ name: 'marketing', checked: st.marketing, label: 'Send me occasional news and offers from the studio.', hint: 'Optional. This does not affect your booking.' });
     const honey = h('div', { class: 'honeypot', attrs: { 'aria-hidden': 'true' } }, h('label', null, 'Company', h('input', { attrs: { type: 'text', name: 'company', tabindex: '-1', autocomplete: 'off' } })));
     const form = h('form', { class: 'details-form', attrs: { novalidate: true } }, fName.wrap, fPhone.wrap, fEmail.wrap, fNote.wrap, cMarketing.wrap, honey,
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => { save(); go(3); } }), button('Review booking', { type: 'submit', iconRight: 'arrowRight' })));
@@ -277,7 +277,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     return [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Check and send' }),
       h('dl', { class: 'review' },
         h('dt', { text: 'Artist' }), h('dd', { text: p.display_name }),
-        h('dt', { text: 'Service' }), h('dd', { text: `${s.name}, about ${durationLabel(s.duration_min)}` }),
+        h('dt', { text: 'Service' }), h('dd', { text: `${s.name}, ${durationLabel(s.duration_min)}` }),
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(st.date!)} at ${st.timeLabel} (UK time)` }),
         h('dt', { text: 'Price' }), h('dd', { text: s.price_label }),
         h('dt', { text: 'Name' }), h('dd', { text: st.name }),
@@ -313,8 +313,8 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         h('div', { class: 'manage-actions' },
           button('Copy link', { variant: 'secondary', size: 'sm', icon: 'check', onClick: async () => { try { await navigator.clipboard.writeText(link); toast('Link copied'); } catch { toast('Copy failed. Use "Open my booking" and bookmark the page.', 'error'); } } }),
           linkButton('Open my booking', `/manage#t=${encodeURIComponent(r.manage_token)}`, { variant: 'ghost', size: 'sm' }))),
-      r.preview ? notice('warn', 'Preview site: this is a test booking while the salon gets ready to launch.') : null,
-      h('p', { class: 'done-actions' }, linkButton('Back to the salon', '/', { variant: 'ghost' }))));
+      r.preview ? notice('warn', 'Preview site: this is a test booking while the studio gets ready to launch.') : null,
+      h('p', { class: 'done-actions' }, linkButton('Back to the studio', '/', { variant: 'ghost' }))));
     stage.querySelector<HTMLElement>('h2')?.focus();
     window.scrollTo({ top: 0 });
   }
@@ -330,7 +330,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
   }
 
   if (salon.booking_mode === 'closed') {
-    mount(stage, notice('info', 'Online booking is not open yet. Please contact the salon, or send an enquiry.'), h('p', { class: 'mt' }, linkButton('Send an enquiry', '/bridal')));
+    mount(stage, notice('info', 'Online booking is not open yet. Please contact the studio, or send an enquiry.'), h('p', { class: 'mt' }, linkButton('Send an enquiry', '/bridal')));
     renderSummary();
     return;
   }

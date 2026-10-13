@@ -19,7 +19,7 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
   const idem = newIdempotencyKey();
   const pre = query.get('artist');
   const fPro = select({ label: 'Who would you like?', name: 'professional', value: pros.some((p) => p.slug === pre) ? pre! : 'any',
-    options: [{ value: 'any', label: 'No preference, the salon will advise' }, ...pros.map((p) => ({ value: p.slug, label: `${p.display_name}${p.specialty ? ', ' + p.specialty : ''}` }))] });
+    options: [{ value: 'any', label: 'No preference, the studio will advise' }, ...pros.map((p) => ({ value: p.slug, label: `${p.display_name}${p.specialty ? ', ' + p.specialty : ''}` }))] });
   const fName = field({ label: 'Full name', name: 'name', required: true, autocomplete: 'name', maxlength: 80 });
   const fPhone = field({ label: 'Mobile number', name: 'phone', type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel' });
   const fEmail = field({ label: 'Email', name: 'email', type: 'email', autocomplete: 'email' });
@@ -64,9 +64,9 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
       mount(body, h('div', { class: 'done' },
         h('div', { class: 'done-mark', attrs: { 'aria-hidden': 'true' } }, icon('check', 26)),
         h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Thank you, your enquiry has been sent' }),
-        h('p', { class: 'done-lede', text: r.professional ? `${r.professional} will get back to you about your date.` : 'The salon will get back to you about your date.' }),
-        profile.salon.booking_mode === 'preview' ? notice('warn', 'Preview site: this is a test enquiry while the salon gets ready to launch.') : null,
-        h('p', { class: 'done-actions' }, linkButton('Back to the salon', '/', { variant: 'ghost' }))));
+        h('p', { class: 'done-lede', text: r.professional ? `${r.professional} will get back to you about your date.` : 'The studio will get back to you about your date.' }),
+        profile.salon.booking_mode === 'preview' ? notice('warn', 'Preview site: this is a test enquiry while the studio gets ready to launch.') : null,
+        h('p', { class: 'done-actions' }, linkButton('Back to the studio', '/', { variant: 'ghost' }))));
       body.querySelector<HTMLElement>('h2')?.focus();
     } catch (e2) {
       setBusy(submit, false);
@@ -77,11 +77,11 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
   publicShell(app, profile, [h('section', { class: 'enquiry' },
     h('div', { class: 'container enquiry-grid' },
       h('div', { class: 'enquiry-intro' },
-        h('h1', { class: 'page-title', text: 'Bridal enquiry' }),
-        h('p', { class: 'lede', text: 'Tell us about your day. The artist will reply with availability and a quote; nothing is booked until you both agree.' }),
+        h('h1', { class: 'page-title', text: 'Enquire for Bridal bookings' }),
+        h('p', { class: 'lede', text: 'Every bride deserves a look that feels uniquely hers. Share your wedding date/time, your desired look and your preferred artist, and they’ll be in touch to discuss availability and provide a personalised quote. Nothing is booked until you both agree.' }),
         h('ul', { class: 'tick-list' },
           h('li', null, icon('check', 16), h('span', { text: 'Bridal hair, makeup and hijab styling' })),
-          h('li', null, icon('check', 16), h('span', { text: 'Choose an artist or let the salon advise' })),
+          h('li', null, icon('check', 16), h('span', { text: 'Choose an artist or let the studio advise' })),
           h('li', null, icon('check', 16), h('span', { text: 'No payment is taken online' })))),
       body))]);
 }
@@ -113,14 +113,14 @@ export async function managePage(app: HTMLElement) {
         h('dt', { text: 'Reference' }), h('dd', { class: 'ref', text: b.ref }),
         h('dt', { text: 'Status' }), h('dd', null, statusBadge(b.status)),
         h('dt', { text: 'Artist' }), h('dd', { text: b.professional }),
-        h('dt', { text: 'Service' }), h('dd', { text: `${b.service}, about ${durationLabel(b.duration_min)}, ${b.price_label}` }),
+        h('dt', { text: 'Service' }), h('dd', { text: `${b.service}, ${durationLabel(b.duration_min)}, ${b.price_label}` }),
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(b.local_date)} at ${time12(b.local_time)} (UK time)` }),
         s.address ? [h('dt', { text: 'Where' }), h('dd', { text: s.address })] : null),
       b.status === 'pending' ? notice('info', `${b.professional_short} has not confirmed this booking yet. The time is held for you in the meantime.`) : null,
       b.status === 'declined' ? notice('warn', `${b.professional_short} could not take this booking${b.status_reason ? ': ' + b.status_reason : ''}. Please choose another time.`) : null,
       s.booking_policy ? h('div', { class: 'policy' }, h('p', { class: 'policy-title', text: 'Booking policy' }), h('p', { class: 'policy-text', text: s.booking_policy })) : null,
       h('div', { class: 'manage-actions' }, cancelBtn, linkButton('Make another booking', '/book', { variant: 'ghost' })),
-      (s.phone || s.whatsapp) ? h('p', { class: 'muted small mt', text: `Need to change something else? Contact the salon${s.phone ? ' on ' + s.phone : ''}${s.whatsapp ? ' or WhatsApp ' + s.whatsapp : ''}.` }) : null);
+      (s.phone || s.whatsapp) ? h('p', { class: 'muted small mt', text: `Need to change something else? Contact the studio${s.phone ? ' on ' + s.phone : ''}${s.whatsapp ? ' or WhatsApp ' + s.whatsapp : ''}.` }) : null);
   };
   await load();
 }
@@ -133,17 +133,17 @@ export async function privacyPage(app: HTMLElement) {
   const P = (t: string) => h('p', { text: t });
   publicShell(app, profile, [h('section', { class: 'container pad-y prose' },
     h('h1', { class: 'page-title', text: 'Privacy notice' }),
-    s?.booking_mode !== 'live' ? notice('warn', 'Draft for the salon to review before launch.') : null,
+    s?.booking_mode !== 'live' ? notice('warn', 'Draft for the studio to review before launch.') : null,
     h('h2', { text: 'What we collect' }),
     P('When you book or send an enquiry we collect your name, mobile number and, if you give it, your email address and any note you add. We also keep the details of your appointment.'),
     h('h2', { text: 'Why we use it' }),
     P('To arrange and manage your appointment or reply to your enquiry. If you tick the optional box, we may also send you occasional news and offers; you can ask us to stop at any time.'),
     h('h2', { text: 'Who can see it' }),
-    P('Only the artist you book and the salon owner. Each artist sees only their own clients. We do not sell your details.'),
+    P('Only the artist you book and the studio owner. Each artist sees only their own clients. We do not sell your details.'),
     h('h2', { text: 'Where it is stored' }),
     P('Your details are stored securely with our booking system provider (Supabase, hosted in the European Union).'),
     h('h2', { text: 'Your rights' }),
-    P('You can ask to see, correct or delete the information we hold about you. Contact the salon and we will help.'),
+    P('You can ask to see, correct or delete the information we hold about you. Contact the studio and we will help.'),
     h('h2', { text: 'Contact' }),
-    P(s?.email ? `Email ${s.email}.` : 'Contact the salon directly.'))]);
+    P(s?.email ? `Email ${s.email}.` : 'Contact the studio directly.'))]);
 }

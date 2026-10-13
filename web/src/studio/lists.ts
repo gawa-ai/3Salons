@@ -101,7 +101,7 @@ function openClient(ctx: Ctx, id: string, onChange: () => void) {
     d.setTitle(c.name);
     const fName = field({ label: 'Name', name: 'name', value: c.name, maxlength: 80 });
     const fEmail = field({ label: 'Email', name: 'email', type: 'email', value: c.email ?? '' });
-    const fNotes = textarea({ label: 'Notes', name: 'notes', value: c.notes ?? '', rows: 4, maxlength: 4000, hint: `Private to ${c.professional}${ctx.isOwner ? ' and you' : ' and the salon owner'}.` });
+    const fNotes = textarea({ label: 'Notes', name: 'notes', value: c.notes ?? '', rows: 4, maxlength: 4000, hint: `Private to ${c.professional}${ctx.isOwner ? ' and you' : ' and the studio owner'}.` });
     const mk = checkbox({ name: 'mk', checked: c.marketing_consent, label: 'Agreed to receive news and offers', hint: c.marketing_consent_at ? `Since ${dateTimeShort(c.marketing_consent_at)}` : undefined });
     mount(d.body,
       h('dl', { class: 'kv' }, h('dt', { text: 'Mobile' }), h('dd', null, h('a', { attrs: { href: `tel:${c.phone}` }, text: c.phone })),
@@ -183,7 +183,7 @@ export async function messagesPage(ctx: Ctx) {
     h('div', { class: 'ov-grid' },
       h('section', { class: 'panel' },
         h('div', { class: 'panel-head' }, h('h3', { class: 'panel-title', text: 'Calls' }), h('span', { class: 'badge badge-neutral', text: 'Not connected' })),
-        h('p', { class: 'muted', text: 'Phone answering is not connected for this salon. When it is, call summaries for your bookings will appear here.' })),
+        h('p', { class: 'muted', text: 'Phone answering is not connected for this studio. When it is, call summaries for your bookings will appear here.' })),
       h('section', { class: 'panel' },
         h('div', { class: 'panel-head' }, h('h3', { class: 'panel-title', text: 'Text messages' }), h('span', { class: ['badge', r.sms_connected ? 'badge-confirmed' : 'badge-neutral'], text: r.sms_connected ? 'Connected' : 'Not connected' })),
         h('p', { class: 'muted', text: r.sms_connected ? 'Messages are sent automatically.' : 'Every message the system would send is recorded below, but nothing is sent until text messaging is connected. Contact clients yourself in the meantime.' }))),

@@ -9,7 +9,7 @@ export function pounds(pence: number | null | undefined): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: v % 1 ? 2 : 0 }).format(v);
 }
 
-/** Today's date (YYYY-MM-DD) in the salon timezone. */
+/** Today's date (YYYY-MM-DD) in the studio timezone. */
 export function todayLocal(tz = TIMEZONE): string {
   return isoDateInTz(new Date(), tz);
 }
@@ -71,7 +71,7 @@ export function durationLabel(min: number): string {
   return m ? `${h} hr ${m} min` : `${h} hr${h > 1 ? 's' : ''}`;
 }
 
-/** UTC instant for a local wall-clock date+time in the salon timezone (DST-safe). */
+/** UTC instant for a local wall-clock date+time in the studio timezone (DST-safe). */
 export function zonedToUtc(dateIso: string, hhmm: string, tz = TIMEZONE): Date {
   const [y, mo, d] = dateIso.split('-').map(Number);
   const [h, mi] = hhmm.split(':').map(Number);

@@ -23,7 +23,7 @@ let cache: Promise<PublicProfile> | null = null;
 export function loadProfile(force = false): Promise<PublicProfile> {
   if (!cache || force) {
     cache = rpc<any>('salon_public_profile', { p_salon: SALON_SLUG }, { anon: true }).then((r) => {
-      if (!r?.ok) throw new Error(r?.message || 'This salon is not available right now.');
+      if (!r?.ok) throw new Error(r?.message || 'This studio is not available right now.');
       return r as PublicProfile;
     });
     cache.catch(() => { cache = null; });

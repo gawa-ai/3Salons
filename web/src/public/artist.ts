@@ -16,7 +16,7 @@ export async function artistPage(app: HTMLElement, slug: string) {
     document.title = 'Artist not found · Shahina Ahmed';
     publicShell(app, profile, [h('section', { class: 'container pad-y narrow' },
       h('h1', { class: 'page-title', text: 'We could not find that artist' }),
-      h('p', { class: 'muted', text: 'The link may be out of date. See everyone who works at the salon on the home page.' }),
+      h('p', { class: 'muted', text: 'The link may be out of date. See everyone who works at the studio on the home page.' }),
       h('p', { class: 'mt' }, linkButton('See our professionals', '/#professionals')))]);
     return;
   }

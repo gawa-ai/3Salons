@@ -31,7 +31,7 @@ export function publicShell(app: HTMLElement, profile: PublicProfile | null, con
 
   const preview = profile?.salon.booking_mode === 'preview'
     ? h('div', { class: 'preview-bar', attrs: { role: 'note' } },
-        h('p', null, h('strong', { text: 'Preview site. ' }), 'The salon is getting ready to launch, so bookings made here are test bookings for now.'))
+        h('p', null, h('strong', { text: 'Preview site. ' }), 'The studio is getting ready to launch, so bookings made here are test bookings for now.'))
     : null;
 
   const header = h('header', { class: 'site-header' },
@@ -58,7 +58,7 @@ export function publicShell(app: HTMLElement, profile: PublicProfile | null, con
             h('li', null, h('a', { attrs: { href: '/#contact' }, text: 'Contact' })))),
         h('div', null, h('p', { class: 'footer-head', text: 'Artists' }),
           h('ul', null, (profile?.professionals ?? []).map((p) => h('li', null, h('a', { attrs: { href: `/artists/${p.slug}` }, text: p.display_name }))))),
-        h('div', null, h('p', { class: 'footer-head', text: 'Salon' }),
+        h('div', null, h('p', { class: 'footer-head', text: 'Studio' }),
           h('ul', null,
             h('li', null, h('a', { attrs: { href: '/privacy' }, text: 'Privacy' })),
             h('li', null, h('a', { attrs: { href: '/signin' }, text: 'Staff sign in' })))))),

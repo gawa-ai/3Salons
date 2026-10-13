@@ -3,12 +3,12 @@ import { linkButton, spinner, errorBox } from '../lib/ui';
 import { WEEKDAYS, time12, durationLabel } from '../lib/format';
 import { publicStorageUrl } from '../lib/supabase';
 import { PORTFOLIO_BUCKET } from '../config';
-import { loadProfile, loadGallery, fromPrice, type PublicProfile, type PublicPro } from './data';
+import { loadProfile, loadGallery, type PublicProfile, type PublicPro } from './data';
 import { publicShell, arch, proMark } from './layout';
 
 export async function homePage(app: HTMLElement) {
   document.title = 'Shahina Ahmed · Blackburn';
-  publicShell(app, null, [spinner('Loading the salon')]);
+  publicShell(app, null, [spinner('Loading the studio')]);
   let profile: PublicProfile;
   try {
     profile = await loadProfile();
@@ -23,12 +23,13 @@ export async function homePage(app: HTMLElement) {
     h('div', { class: 'container hero-grid' },
       h('div', { class: 'hero-copy' },
         h('h1', { class: 'hero-title', attrs: { id: 'hero-title' } },
-          ...(salon.tagline ?? 'Your moment. Your signature look.').split(/(?<=\.)\s+/).map((line) => h('span', { class: 'hero-line', text: line }))),
-        h('p', { class: 'hero-lede', text: `Hair, makeup, hijab and saree styling${salon.city ? ' in ' + salon.city : ''}, tailored to you and your occasion. Choose your artist and book your appointment, or get in touch for bridal styling.` }),
+          ...heroLines(salon.tagline).map((line) => h('span', { class: 'hero-line', text: line }))),
+        h('p', { class: 'hero-lede', text: `From flawless makeup and elegant hair to beautifully styled hijabs and sarees, enjoy personalised styling${salon.city ? ' in ' + salon.city : ''}, tailored to you and your occasion.` }),
+        h('p', { class: 'hero-lede', text: 'Choose your artist and book your appointment, or get in touch to discuss your dream bridal look.' }),
         h('div', { class: 'hero-actions' },
           linkButton('Book an appointment', '/book', { size: 'lg' }),
           linkButton('Bridal enquiry', '/bridal', { variant: 'secondary', size: 'lg' })),
-        h('p', { class: 'hero-note' }, icon('check', 16), h('span', { text: 'Choose your artist and a free time. Your artist confirms the booking personally.' }))),
+        h('p', { class: 'hero-note' }, icon('check', 16), h('span', { text: 'Your moment deserves to be unforgettable.' }))),
       h('div', { class: 'hero-visual', attrs: { 'aria-hidden': 'true' } },
         arch(h('div', { class: 'hero-arch-art' },
           h('img', { attrs: { src: '/brand/sa-monogram.png', alt: '', width: 160, height: 210 } })), { size: 'xl', tone: 'blush' }),
@@ -55,8 +56,10 @@ export async function homePage(app: HTMLElement) {
     h('div', { class: 'container bridal-grid' },
       h('div', { class: 'bridal-art', attrs: { 'aria-hidden': 'true' } }, arch(h('span', { class: 'bridal-arch-lines' }, h('img', { class: 'bridal-mark', attrs: { src: '/brand/sa-monogram.png', alt: '', width: 120, height: 158 } })), { size: 'lg', tone: 'night' })),
       h('div', { class: 'bridal-copy' },
-        h('h2', { class: 'band-title', attrs: { id: 'bridal-title' }, text: 'Bridal, by enquiry' }),
-        h('p', { text: 'Every bride is planned individually. Tell us your date, the look you have in mind and who you would like, and the artist will come back to you with availability and a quote.' }),
+        h('h2', { class: 'band-title', attrs: { id: 'bridal-title' }, text: 'Enquire for Bridal bookings' }),
+        h('p', { text: 'Every bride deserves a look that feels uniquely hers. Our bridal styling is tailored to you, your vision and your special day.' }),
+        h('p', { text: 'Simply share your wedding date/time, your desired look and your preferred artist. They’ll be in touch to discuss availability and provide a personalised quote.' }),
+        h('p', { class: 'bridal-closing', text: 'Let’s create your perfect bridal look together!' }),
         h('ul', { class: 'bridal-list' },
           pros.filter((p) => p.services.some((s) => s.category === 'bridal')).map((p) => h('li', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), h('span', { text: `${p.display_name}${p.specialty ? ', ' + p.specialty.toLowerCase() : ''}` })))),
         linkButton('Send a bridal enquiry', '/bridal', { variant: 'secondary', size: 'lg', class: 'btn-on-dark' }))));
@@ -75,10 +78,13 @@ export async function homePage(app: HTMLElement) {
   const about = h('section', { class: 'band band-stone', attrs: { id: 'about', 'aria-labelledby': 'about-title' } },
     h('div', { class: 'container about-grid' },
       h('div', null,
-        h('h2', { class: 'band-title', attrs: { id: 'about-title' }, text: 'About the salon' })),
+        h('h2', { class: 'band-title', attrs: { id: 'about-title' }, text: 'About the Studio' })),
       h('div', { class: 'about-copy' },
-        h('p', { text: 'Each artist runs their own appointments. When you book online you choose the artist, the service and a free time, and your booking is held for you while the artist confirms it.' }),
-        h('p', { text: 'For weddings and larger occasions, send a bridal enquiry so the artist can plan the day with you.' }))));
+        h('p', { class: 'about-lead', text: `A place for beauty, creativity and individual style in the heart of ${salon.city ?? 'the community'}.` }),
+        h('p', { text: 'Shahina Ahmed brings together a talented team of artists with years of experience in hair, makeup, hijab and saree styling. Also offering training to boost the confidence within you.' }),
+        h('p', { text: 'Each artist manages their own appointments, giving you the freedom to choose the artist, service and available time that suits you best. When you book online, your appointment is held while your chosen artist confirms the booking.' }),
+        h('p', { text: 'For weddings and larger occasions, we offer a personalised bridal enquiry service, allowing your artist to understand your vision, discuss your requirements and plan your styling around your special day.' }),
+        h('p', { class: 'about-closing', text: 'Your style, your artist, your moment!' }))));
 
   const contact = h('section', { class: 'band band-pearl', attrs: { id: 'contact', 'aria-labelledby': 'contact-title' } },
     h('div', { class: 'container' },
@@ -86,7 +92,9 @@ export async function homePage(app: HTMLElement) {
       h('div', { class: 'contact-grid' },
         h('div', { class: 'contact-card' },
           h('h3', { class: 'card-title' }, icon('pin', 18), h('span', { text: 'Location' })),
-          salon.address ? h('p', { text: salon.address }) : h('p', { class: 'muted', text: salon.city ? `${salon.city}. Full address to be announced.` : 'Address to be announced.' })),
+          salon.address
+            ? h('p', { class: 'address' }, h('strong', { text: salon.name }), ...salon.address.split(/\s*,\s*|\n/).filter(Boolean).flatMap((line) => [h('br'), line]))
+            : h('p', { class: 'muted', text: salon.city ? `${salon.city}. Full address to be announced.` : 'Address to be announced.' })),
         h('div', { class: 'contact-card' },
           h('h3', { class: 'card-title' }, icon('clock', 18), h('span', { text: 'Opening hours' })),
           salon.hours_confirmed && salon.hours?.length ? hoursTable(salon.hours)
@@ -103,14 +111,20 @@ export async function homePage(app: HTMLElement) {
   if (location.hash) requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView());
 }
 
+const HERO_TITLE = 'Your Beauty. Your Style. Your Special Moment.';
+// Earlier staging headlines are replaced by the client's wording; an owner-edited headline is respected.
+const OLD_HEROES = ['Your moment. Your signature look.', 'Hair, makeup and hijab styling for the moments that matter.'];
+function heroLines(tagline: string | null): string[] {
+  const t = tagline && !OLD_HEROES.includes(tagline.trim()) ? tagline : HERO_TITLE;
+  return t.split(/(?<=\.)\s+/);
+}
+
 function proCard(p: PublicPro) {
-  const from = fromPrice(p);
   return h('article', { class: ['pro-card', `pro-${p.color}`] },
     h('a', { class: 'pro-card-link', attrs: { href: `/artists/${p.slug}`, 'aria-label': `${p.display_name}, view profile` } },
       arch(proMark(p, 'md'), { size: 'md', tone: 'pro', color: p.color })),
-    h('h3', { class: 'pro-name' }, h('a', { attrs: { href: `/artists/${p.slug}` }, text: p.display_name })),
-    p.specialty ? h('p', { class: 'pro-specialty', text: p.specialty }) : null,
-    h('p', { class: 'pro-meta', text: [`${p.services.length} service${p.services.length === 1 ? '' : 's'}`, from].filter(Boolean).join(', ') }),
+    // The logo already carries the full name and role, so the card shows just the first name (client request).
+    h('h3', { class: 'pro-name' }, h('a', { attrs: { href: `/artists/${p.slug}` }, text: p.short_name || p.display_name })),
     h('div', { class: 'pro-actions' },
       p.online_booking && p.services.some((s) => s.bookable_online)
         ? linkButton('Book', `/book?artist=${p.slug}`, { size: 'sm' })
@@ -125,7 +139,7 @@ export function serviceRows(p: PublicPro) {
       s.description ? h('p', { class: 'menu-desc', text: s.description }) : null),
     h('div', { class: 'menu-side' },
       h('p', { class: 'menu-price', text: s.price_label }),
-      s.price_kind !== 'enquire' ? h('p', { class: 'menu-time', text: `about ${durationLabel(s.duration_min)}` }) : null,
+      s.price_kind !== 'enquire' ? h('p', { class: 'menu-time', text: durationLabel(s.duration_min) }) : null,
       s.bookable_online
         ? linkButton('Book', `/book?artist=${p.slug}&service=${s.id}`, { variant: 'secondary', size: 'sm' })
         : linkButton('Enquire', `/bridal?artist=${p.slug}`, { variant: 'ghost', size: 'sm' })))));
@@ -187,6 +201,6 @@ export function galleryGrid(items: { storage_path: string; media_type: string; a
     g.media_type === 'video'
       ? h('video', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), muted: true, loop: true, playsinline: true, controls: true, preload: 'none', poster: g.storage_path.startsWith('/') ? g.storage_path.replace(/\.mp4$/, '-poster.jpg') : undefined, 'aria-label': g.alt_text || `Video by ${g.professional}` } })
       : h('img', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), alt: g.alt_text || `Look by ${g.professional}`, loading: 'lazy', decoding: 'async' } }),
-    h('p', { class: 'gallery-caption', text: g.caption ? `${g.caption}, by ${g.professional}` : `By ${g.professional}` }))));
+    h('p', { class: 'gallery-caption', text: g.caption ? (/\bby\b/i.test(g.caption) ? g.caption : `${g.caption}, by ${g.professional}`) : `By ${g.professional}` }))));
 }
 

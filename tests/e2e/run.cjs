@@ -63,7 +63,7 @@ async function main() {
     await page.goto(BASE + '/book');
     await page.waitForSelector('.choice-pro');
     await shot(page, 'desktop-book-1-artist', false);
-    await page.click('.choice-pro:has-text("Sofia MUA")');
+    await page.click('.choice-pro:has-text("Sofia Musa")');
     await page.waitForSelector('.choice-service');
     await shot(page, 'desktop-book-2-service', false);
     await page.click('.choice-service:has-text("Party Makeup")');
@@ -180,7 +180,7 @@ async function main() {
     await page.goto(BASE + '/studio/team');
     await page.waitForSelector('.team-card');
     await shot(page, 'desktop-owner-team', false);
-    await page.locator('.team-card:has-text("Sofia MUA") button:has-text("Invite")').click();
+    await page.locator('.team-card:has-text("Sofia Musa") button:has-text("Invite")').click();
     await page.fill('input[name=email]', 'sofia@salon.test');
     await page.click('button:has-text("Create invitation")');
     await page.waitForSelector('.code-box');
@@ -206,7 +206,7 @@ async function main() {
     ({ ctx, page } = await newPage());
     await page.goto(BASE + '/join');
     await page.fill('input[name=code]', sofiaCode);
-    await page.fill('input[name=name]', 'Sofia MUA');
+    await page.fill('input[name=name]', 'Sofia Musa');
     await page.fill('input[name=email]', 'sofia@salon.test');
     await page.fill('input[name=password]', 'Sofia-password-123');
     await page.click('button:has-text("Create my account")');

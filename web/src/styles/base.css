@@ -34,9 +34,10 @@
 
   /* professional identities (also used on calendars) */
   --pro-bronze: #8A6A48; --pro-bronze-bg: #F2E9DD;
-  --pro-rose: #A24F65;   --pro-rose-bg: #F6E3E7;
+  /* class names stay (the database stores them); values are neutral: no pink or purple */
+  --pro-rose: #3F3834;   --pro-rose-bg: #E9E4DD;   /* charcoal */
   --pro-slate: #4F6377;  --pro-slate-bg: #E4EAF0;
-  --pro-plum: #6B4C7A;   --pro-plum-bg: #ECE4F1;
+  --pro-plum: #7A6A2E;   --pro-plum-bg: #EFEBD6;   /* olive gold */
   --pro-sage: #5A6B53;   --pro-sage-bg: #E6ECE2;
 
   --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;

@@ -90,8 +90,8 @@ export async function availabilityPage(ctx: Ctx) {
       ctx.isOwner ? salonHoursPanel(ctx, r, load) : null,
       r.professionals.map((p: any) => proSchedulePanel(ctx, p, load)),
       h('section', { class: 'panel' },
-        h('div', { class: 'panel-head' }, h('h3', { class: 'panel-title', text: 'Salon closures' }),
-          ctx.isOwner ? button('Close the salon', { size: 'sm', variant: 'secondary', icon: 'plus', onClick: () => addTimeOff(ctx, null, load) }) : null),
+        h('div', { class: 'panel-head' }, h('h3', { class: 'panel-title', text: 'Studio closures' }),
+          ctx.isOwner ? button('Close the studio', { size: 'sm', variant: 'secondary', icon: 'plus', onClick: () => addTimeOff(ctx, null, load) }) : null),
         r.salon_time_off.length ? timeOffList(ctx, r.salon_time_off, ctx.isOwner, load) : h('p', { class: 'muted small', text: 'No upcoming closures.' })));
   };
   await load();
@@ -117,16 +117,16 @@ function hoursEditor(rows: { weekday: number; opens: string; closes: string }[])
 function salonHoursPanel(ctx: Ctx, r: any, reload: () => void) {
   const ed = hoursEditor(r.salon_hours);
   const confirmed = checkbox({ name: 'confirmed', checked: r.hours_confirmed, label: 'These are the confirmed opening hours (show them on the website)' });
-  const save = button('Save salon hours', { size: 'sm', onClick: async () => {
+  const save = button('Save studio hours', { size: 'sm', onClick: async () => {
     setBusy(save, true, 'Saving…');
     try {
       await rpc('salon_owner_salon_hours_save', { p_salon: ctx.salonId, p_rows: ed.value() });
       await rpc('salon_owner_settings_save', { p_salon: ctx.salonId, p_payload: { hours_confirmed: confirmed.input.checked } });
-      toast('Salon hours saved'); reload();
+      toast('Studio hours saved'); reload();
     } catch (e) { setBusy(save, false); toast((e as Error).message, 'error'); }
   } });
   return h('section', { class: 'panel' },
-    h('div', { class: 'panel-head' }, h('h3', { class: 'panel-title', text: 'Salon opening hours' })),
+    h('div', { class: 'panel-head' }, h('h3', { class: 'panel-title', text: 'Studio opening hours' })),
     h('p', { class: 'muted small', text: 'No one can be booked online outside these hours.' }),
     !r.hours_confirmed ? notice('warn', 'These hours are placeholders and are not shown on the website until you confirm them.') : null,
     ed.el, confirmed.wrap, h('div', { class: 'row-end' }, save));
@@ -161,7 +161,7 @@ function timeOffList(_ctx: Ctx, items: any[], canDelete: boolean, reload: () => 
 }
 
 function addTimeOff(ctx: Ctx, proId: string | null, reload: () => void) {
-  const d = openDialog({ title: proId ? 'Add time off' : 'Close the salon', size: 'sm' });
+  const d = openDialog({ title: proId ? 'Add time off' : 'Close the studio', size: 'sm' });
   const fFrom = field({ label: 'From date', name: 'from', type: 'date', value: todayLocal(), min: todayLocal() });
   const fFromT = field({ label: 'From time', name: 'fromt', type: 'time', value: '00:00' });
   const fTo = field({ label: 'Until date', name: 'to', type: 'date', value: todayLocal(), min: todayLocal() });
@@ -353,8 +353,8 @@ export async function settingsPage(ctx: Ctx) {
   const r = await rpc<any>('salon_owner_settings', { p_salon: ctx.salonId });
   const s = r.settings;
   const f = (label: string, key: string, o: Partial<Parameters<typeof field>[0]> = {}) => { const x = field({ label, name: key, value: s[key] ?? '', ...o }); return [key, x] as const; };
-  const fields = [f('Salon name', 'name'), f('Tagline', 'tagline', { maxlength: 200 }), f('Town or city', 'city'), f('Full address', 'address', { hint: 'Leave blank until confirmed. Shown on the website.' }),
-    f('Phone', 'phone', { type: 'tel' }), f('WhatsApp number', 'whatsapp', { type: 'tel' }), f('Email', 'email', { type: 'email' }), f('Salon Instagram link', 'instagram_url')];
+  const fields = [f('Studio name', 'name'), f('Tagline', 'tagline', { maxlength: 200 }), f('Town or city', 'city'), f('Full address', 'address', { hint: 'Leave blank until confirmed. Shown on the website.' }),
+    f('Phone', 'phone', { type: 'tel' }), f('WhatsApp number', 'whatsapp', { type: 'tel' }), f('Email', 'email', { type: 'email' }), f('Studio Instagram link', 'instagram_url')];
   const policy = textarea({ label: 'Booking policy (deposits, cancellations, lateness)', name: 'policy', value: s.booking_policy ?? '', rows: 4, maxlength: 2000, hint: 'Leave blank if you have no policy yet. When filled in, clients must accept it before booking.' });
   const mode = select({ label: 'Online booking', name: 'mode', value: s.booking_mode, options: [{ value: 'preview', label: 'Preview: bookings work, website shows a test notice' }, { value: 'live', label: 'Live: open to clients' }, { value: 'closed', label: 'Closed: no online bookings' }] });
   const notice1 = field({ label: 'Minimum notice (hours)', name: 'notice', type: 'number', min: '0', max: '336', value: String(s.min_notice_min / 60) });
@@ -374,7 +374,7 @@ export async function settingsPage(ctx: Ctx) {
     catch (e) { setBusy(save, false); mount(err, notice('error', (e as Error).message)); }
   } });
   mount(ctx.content,
-    h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Salon details' }), h('div', { class: 'form-grid' }, fields.map(([, x]) => x.wrap))),
+    h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Studio details' }), h('div', { class: 'form-grid' }, fields.map(([, x]) => x.wrap))),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Online booking' }), mode.wrap, h('div', { class: 'form-grid' }, notice1.wrap, ahead.wrap, grid.wrap), policy.wrap),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Integrations' }),
       h('dl', { class: 'kv' }, h('dt', { text: 'Text messages' }), h('dd', { text: s.sms_connected ? 'Connected' : 'Not connected' }),
@@ -388,7 +388,7 @@ const ACTION_LABEL: Record<string, string> = {
   'booking.cancelled': 'Booking cancelled', 'booking.completed': 'Marked completed', 'booking.no_show': 'Marked no-show', 'booking.rescheduled': 'Booking moved',
   'booking.reassigned': 'Booking moved to another professional', 'booking.reassigned_away': 'Booking moved away', 'booking.note': 'Booking note', 'booking.expired': 'Request expired',
   'client.updated': 'Client updated', 'enquiry.created': 'Enquiry received', 'enquiry.updated': 'Enquiry updated', 'service.created': 'Service added', 'service.updated': 'Service changed',
-  'hours.updated': 'Working hours changed', 'salon_hours.updated': 'Salon hours changed', 'time_off.added': 'Time off added', 'time_off.removed': 'Time off removed',
+  'hours.updated': 'Working hours changed', 'salon_hours.updated': 'Studio hours changed', 'time_off.added': 'Time off added', 'time_off.removed': 'Time off removed',
   'invitation.created': 'Invitation created', 'invitation.accepted': 'Invitation accepted', 'invitation.revoked': 'Invitation revoked', 'membership.disabled': 'Login disabled',
   'membership.active': 'Login enabled', 'professional.created': 'Profile added', 'professional.updated': 'Profile changed', 'settings.updated': 'Settings changed',
   'gallery.added': 'Portfolio item added', 'gallery.updated': 'Portfolio item changed', 'gallery.removed': 'Portfolio item removed',

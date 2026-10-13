@@ -57,7 +57,7 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
   if (!me || !m) {
     mount(app, h('div', { class: 'studio-loading' }, h('div', { class: 'denied' },
       h('h1', { class: 'page-title', text: 'No studio access' }),
-      h('p', { class: 'muted', text: 'This account is not linked to the salon, or its access has been switched off by the owner.' }),
+      h('p', { class: 'muted', text: 'This account is not linked to the studio, or its access has been switched off by the owner.' }),
       h('div', { class: 'denied-actions' }, button('Sign out', { variant: 'secondary', onClick: async () => { await signOut(); navigate('/signin'); } }),
         h('a', { attrs: { href: '/join' }, text: 'Use an invitation code' })))));
     return;

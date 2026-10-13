@@ -21,7 +21,7 @@ export async function overviewPage(ctx: Ctx) {
     mount(ctx.content,
       h('div', { class: 'greeting' },
         h('p', { class: 'greet-date', text: formatDateLong(r.today) }),
-        h('h2', { class: 'greet-title', text: ctx.isOwner ? (ctx.scope ? `${ctx.proById(ctx.scope)?.display_name}’s day` : 'The salon today') : 'Your day' })),
+        h('h2', { class: 'greet-title', text: ctx.isOwner ? (ctx.scope ? `${ctx.proById(ctx.scope)?.display_name}’s day` : 'The studio today') : 'Your day' })),
       h('div', { class: 'tiles' },
         tile('Today', String(today.length), today.length === 1 ? 'appointment' : 'appointments', '/studio/calendar'),
         tile('Awaiting confirmation', String(c.pending), c.pending ? 'requests need your answer' : 'nothing waiting', '/studio/bookings?view=pending', c.pending ? 'tile-attention' : ''),
