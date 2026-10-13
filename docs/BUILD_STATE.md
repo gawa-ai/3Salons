@@ -30,3 +30,9 @@ Labels: **VERIFIED** = tested, at may resulta sa ibaba. **SUPPORTED** = sinusupo
 
 ## BAGO MAG-LIVE: tanggalin ang demo accounts
 Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang totoong owner invitation at bago i-on ang Live mode: i-disable o burahin ang apat na `@sample.com` users (Studio -> Team -> Disable login, o sa Supabase Auth). Hanggang may aktibong demo owner, tatanggihan ng `02_owner_invitation.sql` ang totoong owner (`owner_exists`).
+
+## Round 1 client feedback (2026-10-13) — DONE
+- Hero headline/copy, bridal + About copy, address 199 Preston New Road BB2 6BN, "Studio" wording, black/gold/cream palette (no pink/purple), artist cards show first names, "Sofia Musa", booking-page words removed.
+- Gallery: only the 4 photos Shahina sent are published; 42 others hidden (published=false), not deleted.
+- Migration `20261013194500_client_feedback_round1.sql` applied live (verified by SQL). DB tests green (incl. 16c-16g), e2e 33 checks pass.
+- Still open: opening hours, phone, prices; confirm "Mi Hijabby Sabiha"; demo accounts/sample data removal before go-live (needs explicit OK).
