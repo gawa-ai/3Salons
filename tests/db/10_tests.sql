@@ -410,4 +410,18 @@ select pg_temp.check((select app.message_body('confirmed', sa, pr, k, cl) like '
                         from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
                         join app.clients cl on cl.id = k.client_id limit 1),
   '16k customer texts include the studio address');
+
+-- 16l confirmation text: contact number only when the salon has one (no placeholder ever)
+\i ../../supabase/migrations/20261014100000_client_feedback_round3b_contact.sql
+select pg_temp.check(
+  (select app.message_body('confirmed', sa, pr, k, cl) not like '%Questions?%'
+                        from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
+                        join app.clients cl on cl.id = k.client_id where sa.phone is null limit 1) is not false,
+  '16l no contact line while salon phone is empty');
+update app.salons set phone = '+44 1254 000000' where phone is null;
+select pg_temp.check(
+  (select app.message_body('confirmed', sa, pr, k, cl) like '%Questions? Call +44 1254 000000.%'
+                        from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
+                        join app.clients cl on cl.id = k.client_id limit 1),
+  '16m confirmation text includes salon phone when set');
 \echo ALL_TESTS_PASSED
