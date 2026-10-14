@@ -53,6 +53,12 @@ async function main() {
     check(await page.locator('text=Opening hours will be published soon').isVisible(), 'P3 unconfirmed hours are not published as fact');
     await page.waitForTimeout(400);
     await shot(page, 'desktop-home');
+    check(await page.locator('.appt-only', { hasText: 'strictly by appointment only' }).isVisible(), 'P3b contact block says bookings are by appointment only');
+    await page.locator('.zoom-btn').first().scrollIntoViewIfNeeded();
+    await page.locator('.zoom-btn').first().click();
+    check(await page.locator('dialog.lightbox[open] img').isVisible(), 'P3c clicking a gallery photo opens it larger');
+    await page.keyboard.press('Escape');
+    check(!(await page.locator('dialog.lightbox[open]').count()), 'P3d Escape closes the photo viewer');
     await page.click('#tab-shirin-jal');
     check(await page.locator('.menu-name', { hasText: 'Party Hijab' }).isVisible(), 'P4 service tabs switch artist');
     await page.goto(BASE + '/artists/mi-hijabby-sabiha');

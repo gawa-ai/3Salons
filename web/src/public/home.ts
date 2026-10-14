@@ -100,7 +100,8 @@ export async function homePage(app: HTMLElement) {
         h('div', { class: 'contact-card' },
           h('h3', { class: 'card-title' }, icon('clock', 18), h('span', { text: 'Opening hours' })),
           salon.hours_confirmed && salon.hours?.length ? hoursTable(salon.hours)
-            : h('p', { class: 'muted', text: 'Opening hours will be published soon. Online booking always shows the times each artist is free.' })),
+            : h('p', { class: 'muted', text: 'Opening hours will be published soon. Online booking always shows the times each artist is free.' }),
+          h('p', { class: 'appt-only', text: 'All bookings are strictly by appointment only.' })),
         h('div', { class: 'contact-card' },
           h('h3', { class: 'card-title' }, icon('chat', 18), h('span', { text: 'Get in touch' })),
           h('ul', { class: 'contact-list' },
@@ -202,7 +203,7 @@ export function galleryGrid(items: { storage_path: string; media_type: string; a
   return h('ul', { class: 'gallery-grid' }, items.map((g) => h('li', { class: 'gallery-item' },
     g.media_type === 'video'
       ? h('video', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), muted: true, loop: true, playsinline: true, controls: true, preload: 'none', poster: g.storage_path.startsWith('/') ? g.storage_path.replace(/\.mp4$/, '-poster.jpg') : undefined, 'aria-label': g.alt_text || `Video by ${g.professional}` } })
-      : h('img', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), alt: g.alt_text || `Look by ${g.professional}`, loading: 'lazy', decoding: 'async' } }),
+      : zoomable(h('img', { attrs: { src: publicStorageUrl(PORTFOLIO_BUCKET, g.storage_path), alt: g.alt_text || `Look by ${g.professional}`, loading: 'lazy', decoding: 'async' } })),
     h('p', { class: 'gallery-caption', text: g.caption ? (/\bby\b/i.test(g.caption) ? g.caption : `${g.caption}, by ${g.professional}`) : `By ${g.professional}` }))));
 }
 
@@ -210,4 +211,22 @@ export function galleryGrid(items: { storage_path: string; media_type: string; a
 /** Shahina's own work always leads the gallery; the rest keep their order. */
 export function shahinaFirst<T extends { professional_slug?: string }>(items: T[]): T[] {
   return [...items.filter((g) => g.professional_slug === 'shahina-ahmed'), ...items.filter((g) => g.professional_slug !== 'shahina-ahmed')];
+}
+
+/** Gallery photos open larger in a native dialog (Esc, the close button or a click outside closes it). */
+let lightbox: HTMLDialogElement | null = null;
+function zoomable(img: HTMLImageElement) {
+  const btn = h('button', { class: 'zoom-btn', attrs: { type: 'button', 'aria-label': `Enlarge photo: ${img.alt}` } }, img);
+  btn.addEventListener('click', () => {
+    if (!lightbox) {
+      lightbox = h('dialog', { class: 'lightbox', attrs: { 'aria-label': 'Photo viewer' } }) as HTMLDialogElement;
+      lightbox.addEventListener('click', () => lightbox!.close());
+      document.body.appendChild(lightbox);
+    }
+    const big = h('img', { attrs: { src: img.src, alt: img.alt } });
+    const close = h('button', { class: 'lightbox-close', attrs: { type: 'button', 'aria-label': 'Close photo' } }, icon('x', 22));
+    mount(lightbox, big, close);
+    lightbox.showModal();
+  });
+  return btn;
 }

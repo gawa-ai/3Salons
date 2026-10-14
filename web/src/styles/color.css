@@ -146,3 +146,10 @@ a.tile:hover { color: #fff; box-shadow: 0 20px 36px -16px rgba(27, 23, 21, .7); 
 .band-lede-title { font-family: var(--serif); font-size: 24px; font-weight: 500; color: var(--plum-deep); margin: 0 0 6px; }
 .menu-note { color: var(--muted); font-size: 13px; margin: 2px 0 0; max-width: 24ch; text-align: right; }
 @media (max-width: 560px) { .menu-note { text-align: left; } }
+
+.appt-only { margin-top: 12px; font-weight: 600; color: var(--plum-deep); }
+.zoom-btn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: var(--r-md); }
+.lightbox { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; overflow: visible; }
+.lightbox::backdrop { background: rgba(20, 16, 14, .88); }
+.lightbox img { display: block; max-width: 96vw; max-height: 92vh; width: auto; height: auto; border-radius: 10px; }
+.lightbox-close { position: absolute; top: -14px; right: -6px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: #221C1A; display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.4); }

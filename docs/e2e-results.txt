@@ -1,6 +1,9 @@
 PASS  P1 home lists 4 professionals (Shahina first)
 PASS  P2 preview notice shown while booking_mode = preview
 PASS  P3 unconfirmed hours are not published as fact
+PASS  P3b contact block says bookings are by appointment only
+PASS  P3c clicking a gallery photo opens it larger
+PASS  P3d Escape closes the photo viewer
 PASS  P4 service tabs switch artist
 PASS  P5 booking request accepted with a reference
 PASS  P6 confirmation shows "Awaiting confirmation" (provisional)
@@ -32,4 +35,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-33 checks passed
+36 checks passed

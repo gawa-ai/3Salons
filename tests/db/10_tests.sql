@@ -404,4 +404,10 @@ select pg_temp.check((select count(*) from app.bookings b1, app.bookings b2 wher
    and b1.status in ('pending','confirmed') and b2.status in ('pending','confirmed')
    and tstzrange(b1.starts_at, b1.block_end) && tstzrange(b2.starts_at, b2.block_end)) = 0, '111 no overlapping active bookings exist anywhere');
 
+reset role;
+\i ../../supabase/migrations/20261014090000_client_feedback_round3a.sql
+select pg_temp.check((select app.message_body('confirmed', sa, pr, k, cl) like '%at Shahina Ahmed, 199 Preston New Road, Blackburn, BB2 6BN. Ref%'
+                        from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
+                        join app.clients cl on cl.id = k.client_id limit 1),
+  '16k customer texts include the studio address');
 \echo ALL_TESTS_PASSED

@@ -90,7 +90,7 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
       b.status_reason && ['declined', 'cancelled', 'expired'].includes(b.status) ? notice('info', `Reason: ${b.status_reason}`) : null,
       h('dl', { class: 'kv' },
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(b.local_date)}, ${time12(b.local_time)} to ${time12(b.local_end)}` }),
-        h('dt', { text: 'Service' }), h('dd', { text: `${b.service}, ${durationLabel(b.duration_min)}${b.buffer_min ? ` + ${b.buffer_min} min buffer` : ''}` }),
+        h('dt', { text: 'Service' }), h('dd', { text: `${b.service}, ${durationLabel(b.duration_min)}` }),
         h('dt', { text: 'Professional' }), h('dd', null, proDot(b.professional_color), ' ', b.professional),
         h('dt', { text: 'Listed price' }), h('dd', { text: b.price_label }),
         h('dt', { text: 'Client' }), h('dd', { text: b.client_name }),
