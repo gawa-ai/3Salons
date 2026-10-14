@@ -9,7 +9,10 @@
 -- Payment details (bank account etc.) are NEVER in code or git: the owner types them in Studio > Settings
 -- and they are stored in app.salons.deposit_instructions. Re-runnable.
 
+-- private_phone: Shahina's own number. It is NOT shown on the website; it is only sent to a client
+-- once the booking is confirmed (confirmation / deposit-received text and the client's booking page).
 alter table app.salons
+  add column if not exists private_phone text,
   add column if not exists deposit_instructions text,
   add column if not exists deposit_hours int not null default 24
     check (deposit_hours between 1 and 168);
@@ -72,7 +75,7 @@ returns text language sql stable set search_path = '' as $$
     '{salon}', s.name || coalesce(', ' || nullif(btrim(s.address), ''), '')),
     '{service}', k.service_name),
     '{when}', app.fmt_when(k.starts_at, s.timezone)),
-    '{contact}', coalesce(' Questions? Call ' || nullif(btrim(s.phone), '') || '.', '')),
+    '{contact}', coalesce(' Questions? Call ' || nullif(btrim(s.private_phone), '') || '.', '')),
     '{deposit}', app.fmt_price(k.deposit_pence, 'fixed')),
     '{hours}', s.deposit_hours::text),
     '{payment}', coalesce(E'\n' || nullif(btrim(s.deposit_instructions), '') || E'\n', ' '))
@@ -242,7 +245,9 @@ begin
        'deposit_instructions', case when k.status = 'pending' and k.deposit_status = 'requested'
                                     then nullif(btrim(s.deposit_instructions), '') end),
     'salon', jsonb_build_object('name', s.name, 'phone', s.phone, 'whatsapp', s.whatsapp, 'email', s.email,
-                                'address', s.address, 'booking_policy', s.booking_policy, 'timezone', s.timezone));
+                                'address', s.address, 'booking_policy', s.booking_policy, 'timezone', s.timezone,
+                                'private_phone', case when k.status in ('confirmed','completed')
+                                                      then nullif(btrim(s.private_phone), '') end));
 exception when sqlstate 'P0001' then
   get stacked diagnostics v_code = message_text, v_detail = pg_exception_detail;
   return app.err_json(v_code, v_detail);
@@ -310,4 +315,44 @@ begin
     grant execute on function public.salon_owner_deposits(uuid) to authenticated;
     grant execute on function public.salon_owner_deposits_save(uuid, jsonb) to authenticated;
   end if;
+end $$;
+
+-- Settings save: adds the private phone, and keeps the payment details and private number out of the audit log.
+create or replace function public.salon_owner_settings_save(p_salon uuid, p_payload jsonb)
+returns jsonb language plpgsql volatile security definer set search_path = '' as $$
+declare m app.memberships; a jsonb := coalesce(p_payload, '{}'::jsonb); s app.salons; before jsonb;
+begin
+  m := app.require_owner(p_salon);
+  select * into s from app.salons where id = p_salon for update;
+  before := to_jsonb(s) - 'deposit_instructions' - 'private_phone';
+  if a ? 'booking_mode' and a->>'booking_mode' not in ('closed','preview','live') then
+    perform app.fail('invalid_mode', 'Unknown booking mode.');
+  end if;
+  if a ? 'email' and coalesce(a->>'email', '') <> '' and not app.valid_email(a->>'email') then
+    perform app.fail('email_invalid', 'Check the email address.');
+  end if;
+  if a ? 'instagram_url' and coalesce(a->>'instagram_url', '') <> '' and a->>'instagram_url' !~* '^https://(www\.)?instagram\.com/' then
+    perform app.fail('invalid_url', 'Instagram links must start with https://www.instagram.com/');
+  end if;
+  update app.salons set
+    name = coalesce(app.clean_text(a->>'name', 120), name),
+    tagline = case when a ? 'tagline' then app.clean_text(a->>'tagline', 200) else tagline end,
+    city = case when a ? 'city' then app.clean_text(a->>'city', 80) else city end,
+    address = case when a ? 'address' then app.clean_text(a->>'address', 300) else address end,
+    phone = case when a ? 'phone' then app.clean_text(a->>'phone', 40) else phone end,
+    private_phone = case when a ? 'private_phone' then app.clean_text(a->>'private_phone', 40) else private_phone end,
+    whatsapp = case when a ? 'whatsapp' then app.clean_text(a->>'whatsapp', 40) else whatsapp end,
+    email = case when a ? 'email' then lower(app.clean_text(a->>'email', 254)) else email end,
+    instagram_url = case when a ? 'instagram_url' then app.clean_text(a->>'instagram_url', 200) else instagram_url end,
+    booking_policy = case when a ? 'booking_policy' then app.clean_text(a->>'booking_policy', 2000) else booking_policy end,
+    booking_mode = coalesce(a->>'booking_mode', booking_mode),
+    min_notice_min = coalesce((a->>'min_notice_min')::int, min_notice_min),
+    max_days_ahead = coalesce((a->>'max_days_ahead')::int, max_days_ahead),
+    slot_interval_min = coalesce((a->>'slot_interval_min')::int, slot_interval_min),
+    hours_confirmed = coalesce((a->>'hours_confirmed')::boolean, hours_confirmed),
+    updated_at = now()
+  where id = p_salon returning * into s;
+  perform app.audit(p_salon, null, m.user_id, 'owner', 'settings.updated', 'salon', p_salon::text,
+                    jsonb_build_object('before', before, 'after', to_jsonb(s) - 'deposit_instructions' - 'private_phone'));
+  return jsonb_build_object('ok', true);
 end $$;

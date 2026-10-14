@@ -124,6 +124,7 @@ export async function managePage(app: HTMLElement) {
       b.status === 'declined' ? notice('warn', `${b.professional_short} could not take this booking${b.status_reason ? ': ' + b.status_reason : ''}. Please choose another time.`) : null,
       s.booking_policy ? h('div', { class: 'policy' }, h('p', { class: 'policy-title', text: 'Booking policy' }), h('p', { class: 'policy-text', text: s.booking_policy })) : null,
       h('div', { class: 'manage-actions' }, cancelBtn, linkButton('Make another booking', '/book', { variant: 'ghost' })),
+      s.private_phone ? h('p', { class: 'muted small mt', text: `Questions about your booking? Call ${s.private_phone}.` }) : null,
       (s.phone || s.whatsapp) ? h('p', { class: 'muted small mt', text: `Need to change something else? Contact the studio${s.phone ? ' on ' + s.phone : ''}${s.whatsapp ? ' or WhatsApp ' + s.whatsapp : ''}.` }) : null);
   };
   await load();

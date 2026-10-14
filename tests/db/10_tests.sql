@@ -546,4 +546,30 @@ select pg_temp.check((:'dperm2'::jsonb) ? 'err', 'D15 visitors cannot read depos
 reset role;
 select pg_temp.check(not exists (select 1 from app.audit_log where detail::text like '%sort code%' or detail::text like '%12345678%'),
   'D16 payment details never appear in the audit log');
+
+-- private phone: only after the booking is confirmed, never public
+update app.salons set private_phone = '+44 7700 900000';
+select pg_temp.check((select app.message_body('confirmed', sa, pr, k, cl) like '%Questions? Call +44 7700 900000.%'
+                        and app.message_body('deposit_received', sa, pr, k, cl) like '%Questions? Call +44 7700 900000.%'
+                        and app.message_body('deposit_request', sa, pr, k, cl) not like '%900000%'
+                        and app.message_body('request_received', sa, pr, k, cl) not like '%900000%'
+                        from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
+                        join app.clients cl on cl.id = k.client_id where k.id = :'dk1_id'),
+  'D17 the private number goes only in confirmation texts, not in the request, provisional or deposit-request texts');
+set role anon; select pg_temp.login(null);
+select public.salon_public_profile('shahina-ahmed')::text as prof_txt \gset
+select public.salon_public_manage(:'dk1_token') as mg2 \gset
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'d2','time','10:00','name','Pia Pending','phone','07700 900805','idempotency_key','idem-deposit-000000005')) as dk3 \gset
+select public.salon_public_manage((:'dk3'::jsonb)->>'manage_token') as mg3 \gset
+select pg_temp.check(:'prof_txt' not like '%900000%' and :'prof_txt' not like '%Test Bank%',
+  'D18 the website profile never exposes the private number or the payment details');
+select pg_temp.check((:'mg2'::jsonb)#>>'{salon,private_phone}' = '+44 7700 900000' and (:'mg3'::jsonb)#>>'{salon,private_phone}' is null,
+  'D19 the client sees the private number on their booking page only once confirmed');
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_owner_settings_save(:'salon', jsonb_build_object('tagline', 'Your Beauty. Your Style.', 'private_phone', '+44 7700 900000')) as ssave \gset
+reset role;
+select pg_temp.check((:'ssave'::jsonb)->>'ok' = 'true'
+  and not exists (select 1 from app.audit_log where detail::text like '%Test Bank%' or detail::text like '%900000%' or detail::text like '%12345678%'),
+  'D20 saving settings keeps payment details and the private number out of the audit log');
 \echo ALL_TESTS_PASSED
