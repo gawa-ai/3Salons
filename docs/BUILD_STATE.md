@@ -47,3 +47,9 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Customer texts now include the studio address (`app.message_body`); migration `20261014090000_client_feedback_round3a.sql` applied live and verified. Commit `4cd8ace`.
 - DB suite green (incl. 16k), e2e 36 checks pass.
 - WAITING (round 3b): Shahina's contact number for confirmation text; opening hours 6:30am-5pm (which days); deposit flow (bank transfer vs Stripe, makeup-only amount, 24h expiry). Bank details must NEVER go in git/code; owner-editable setting only.
+
+## Round 3b/3c (2026-10-14)
+- 3b: confirmation text adds "Questions? Call <salon phone>." only when the salon phone is set (Studio > Settings > Phone). Migration `20261014100000_client_feedback_round3b_contact.sql`, applied live.
+- 3c: client decided messages go out by SMS AND email. Every customer message is also recorded as an email row when the client left an email (`salons.email_connected` default false, so nothing is sent yet). Studio message log labels Text/Email. Migration `20261014110000_client_feedback_round3c_email.sql`.
+- Both channels need the client's own provider accounts (SMS and email sending), paid by the client; keys go in secure settings, never in git or chat.
+- STILL OPEN: deposit flow (bank transfer vs Stripe, makeup-only amount, 24h expiry), 6:30am-5pm days, Shahina phone number, original photos. AI voice: client said not now.

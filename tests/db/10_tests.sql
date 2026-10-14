@@ -155,6 +155,8 @@ select pg_temp.check((select count(*) from app.services sv join app.professional
 select pg_temp.check((select caption from app.gallery_items where storage_path = '/gallery/shahina-ahmed/featured-1.jpg') = 'Makeup by Shahina Ahmed, hijab by Sabiha Patel'
   and (select sort_order from app.gallery_items where storage_path = '/gallery/shahina-ahmed/featured-1.jpg') = 1,
   '16j Shahina photo is first and credits hijab by Sabiha Patel');
+-- (run.sh re-applies every migration, restoring the original notify_booking; re-apply the email one first)
+\i ../../supabase/migrations/20261014110000_client_feedback_round3c_email.sql
 set role anon; select pg_temp.login(null);
 
 select public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1') as sl \gset
@@ -424,4 +426,15 @@ select pg_temp.check(
                         from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
                         join app.clients cl on cl.id = k.client_id limit 1),
   '16m confirmation text includes salon phone when set');
+
+-- 16n customer messages are also recorded by email when the client gave an email address
+select pg_temp.check((select email_connected from app.salons limit 1) = false, '16n email sending is off by default');
+select pg_temp.check(
+  exists (select 1 from app.notifications e where e.channel = 'email' and e.audience = 'customer' and e.purpose = 'request_received'
+            and e.to_addr = 'amira@example.com' and e.status = 'not_connected')
+  and not exists (select 1 from app.notifications e where e.channel = 'email'
+            and not exists (select 1 from app.notifications s2 where s2.booking_id = e.booking_id and s2.channel = 'sms'
+                              and s2.purpose = e.purpose and s2.audience = 'customer' and s2.body = e.body))
+  and not exists (select 1 from app.notifications e where e.channel = 'email' and e.audience <> 'customer'),
+  '16o customer email rows exist (not sent while email is off), match their text, and are never made for artists');
 \echo ALL_TESTS_PASSED
