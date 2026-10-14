@@ -1,6 +1,6 @@
 PASS  P1 home lists 4 professionals (Shahina first)
 PASS  P2 preview notice shown while booking_mode = preview
-PASS  P3 unconfirmed hours are not published as fact
+PASS  P3 unconfirmed hours are not published as fact, and no placeholder text is shown
 PASS  P3b contact block says bookings are by appointment only
 PASS  P3c clicking a gallery photo opens it larger
 PASS  P3d Escape closes the photo viewer

@@ -27,7 +27,7 @@ Huling update: 2026-10-14. Basahin muna ito, tapos `docs/BUILD_STATE.md` ("Round
 
 **Live DB ngayon:** walang deposit columns, walang cron job `app-expire-stale`; `app.opening_hours` = weekday 0–6 bawat isa 10:00–18:00 (ito ang backup values). pg_cron extension installed na (1.6.4). Live migrations nagtatapos sa `client_feedback_round3c_email`.
 
-## BLOCKER
+## (RESOLVED 2026-10-15) BLOCKER
 `mcp__Supabase__apply_migration` (name `deposit_flow`) ay nag-return ng `{"status":"cancelled"}` DALAWANG BESES — malamang hindi na-approve ang prompt. Huwag mag-loop. Sabihan si JG na i-approve ang prompt; kung ayaw pa rin, ibang paraan (hal. si JG magpa-paste ng SQL sa Supabase SQL editor mula sa migration file — walang secrets doon).
 
 ## Susunod na gagawin (sunod-sunod)
@@ -48,3 +48,7 @@ Huling update: 2026-10-14. Basahin muna ito, tapos `docs/BUILD_STATE.md` ("Round
 - Local Postgres: `su claude -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/tmp/bospg/data -l /var/tmp/bospg/pg.log -o '-k /var/tmp/bospg -p 55432' start"`. Patakbuhin ang tests bilang user `claude`: `tests/db/run.sh`, `tests/e2e/run.cjs`.
 - Git: gamitin `-c safe.directory=/home/claude/3salons`. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` at `Claude-Session: https://claude.ai/code/session_01UVmTphvybHdkERYGa7aadL`.
 - Reply style kay JG: Taglish, maikli, direkta, build-first.
+
+## UPDATE 2026-10-15
+- Deposit flow + message format are LIVE (DB) and pushed. Studio and artist hours 06:30-17:00 every day, hours_confirmed = true.
+- JG's rule: follow the client's given instructions exactly, do not decide on your own, do not re-ask answered questions. Makeup-only/saree/bridal deposits and gallery originals are NOT to be asked again (left as is). Only open items for Mohsin: bank details + private phone entered by Shahina in Studio > Settings, and SMS sender name + email address.

@@ -444,6 +444,7 @@ select pg_temp.check(
 reset role;
 -- (the 16k/16l re-applications above restore an older message_body; re-apply the deposit migration last)
 \i ../../supabase/migrations/20261014120000_deposit_flow.sql
+\i ../../supabase/migrations/20261015010000_deposit_message_format.sql
 select pg_temp.check((select count(*) from app.services where category in ('hair','hijab') and price_kind <> 'enquire' and deposit_pence <> 1000) = 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal')) > 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal') and deposit_pence <> 0) = 0,
@@ -551,11 +552,11 @@ select pg_temp.check(not exists (select 1 from app.audit_log where detail::text 
 update app.salons set private_phone = '+44 7700 900000';
 select pg_temp.check((select app.message_body('confirmed', sa, pr, k, cl) like '%Questions? Call +44 7700 900000.%'
                         and app.message_body('deposit_received', sa, pr, k, cl) like '%Questions? Call +44 7700 900000.%'
-                        and app.message_body('deposit_request', sa, pr, k, cl) not like '%900000%'
+                        and app.message_body('deposit_request', sa, pr, k, cl) like E'%\nMakeup Artist\n%\n+44 7700 900000'
                         and app.message_body('request_received', sa, pr, k, cl) not like '%900000%'
                         from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
                         join app.clients cl on cl.id = k.client_id where k.id = :'dk1_id'),
-  'D17 the private number goes only in confirmation texts, not in the request, provisional or deposit-request texts');
+  'D17 the private number goes in confirmed, deposit-request and deposit-received texts, never in the provisional request text');
 set role anon; select pg_temp.login(null);
 select public.salon_public_profile('shahina-ahmed')::text as prof_txt \gset
 select public.salon_public_manage(:'dk1_token') as mg2 \gset
@@ -572,4 +573,10 @@ reset role;
 select pg_temp.check((:'ssave'::jsonb)->>'ok' = 'true'
   and not exists (select 1 from app.audit_log where detail::text like '%Test Bank%' or detail::text like '%900000%' or detail::text like '%12345678%'),
   'D20 saving settings keeps payment details and the private number out of the audit log');
+
+-- Round 5: the deposit message keeps Shahina's own layout (line breaks, her block at the bottom)
+select pg_temp.check((select app.message_body('deposit_request', sa, pr, k, cl) like E'Hi %,\n\n% is available for %.\n\nPlease note all bookings take place at the studio unless discussed otherwise\n(Please see below for address)\n\nTo secure your booking please pay a £% non refundable deposit within 24 hours, which will be deducted on the day.\n\n%Please leave your ref {ref} as the payment reference.\n\n' || sa.name || E'\nMakeup Artist\n199 %'
+                        from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
+                        join app.clients cl on cl.id = k.client_id where k.id = :'dk1_id'),
+  'D21 deposit message layout matches the client wording, line by line');
 \echo ALL_TESTS_PASSED

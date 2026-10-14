@@ -74,3 +74,8 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Not built: receipt/screenshot upload (optional phase 2; the studio confirms from its own bank).
 - Tests: DB 112 incl. D1-D16 + concurrency; e2e 38 (O9, O10); typecheck + build OK.
 - DO NOT push to main before the migration is applied live (the Studio Settings page calls the new functions).
+
+## Round 5 (2026-10-15): client wording for the deposit message, opening hours
+- Deposit request text now follows Shahina's own wording line by line (migration `20261015010000_deposit_message_format.sql`, applied live): "{pro} is available for {service} on {when}", studio note, deposit sentence, her payment details (typed in Studio), "Please leave your ref ... as the payment reference", then signature block (salon name, "Makeup Artist", address lines, private number). Line breaks are kept; the Studio drawer shows them (`white-space: pre-wrap`) and "Copy deposit message" copies them as-is. Test D21 + updated D17.
+- Opening hours: studio and all four artists 06:30-17:00 every day (live data), `hours_confirmed = true`, so the website shows the hours. The "will be published soon" placeholder text is removed from the site.
+- Applied live via SQL (apply_migration prompt kept being cancelled): deposit_flow (by JG in the SQL editor), message format (execute_sql).

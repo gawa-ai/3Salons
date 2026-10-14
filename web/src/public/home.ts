@@ -99,8 +99,7 @@ export async function homePage(app: HTMLElement) {
             : h('p', { class: 'muted', text: salon.city ? `${salon.city}. Full address to be announced.` : 'Address to be announced.' })),
         h('div', { class: 'contact-card' },
           h('h3', { class: 'card-title' }, icon('clock', 18), h('span', { text: 'Opening hours' })),
-          salon.hours_confirmed && salon.hours?.length ? hoursTable(salon.hours)
-            : h('p', { class: 'muted', text: 'Opening hours will be published soon. Online booking always shows the times each artist is free.' }),
+          salon.hours_confirmed && salon.hours?.length ? hoursTable(salon.hours) : null,
           h('p', { class: 'appt-only', text: 'All bookings are strictly by appointment only.' })),
         h('div', { class: 'contact-card' },
           h('h3', { class: 'card-title' }, icon('chat', 18), h('span', { text: 'Get in touch' })),

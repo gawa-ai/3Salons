@@ -50,7 +50,7 @@ async function main() {
     await page.waitForSelector('.pro-card');
     check((await page.locator('.pro-card').count()) === 4, 'P1 home lists 4 professionals (Shahina first)');
     check(await page.locator('text=Preview site.').isVisible(), 'P2 preview notice shown while booking_mode = preview');
-    check(await page.locator('text=Opening hours will be published soon').isVisible(), 'P3 unconfirmed hours are not published as fact');
+    check(!(await page.locator('dl.hours').count()) && !(await page.locator('text=published soon').count()), 'P3 unconfirmed hours are not published as fact, and no placeholder text is shown');
     await page.waitForTimeout(400);
     await shot(page, 'desktop-home');
     check(await page.locator('.appt-only', { hasText: 'strictly by appointment only' }).isVisible(), 'P3b contact block says bookings are by appointment only');

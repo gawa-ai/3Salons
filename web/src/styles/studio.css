@@ -200,7 +200,7 @@ a.tile:hover { border-color: var(--stone-2); box-shadow: var(--shadow-1); color:
 .msg-mini { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .msg-mini li { border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 10px 12px; background: var(--pearl); }
 .msg-mini-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700; flex-wrap: wrap; }
-.msg-mini-body { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.msg-mini-body { font-size: 13px; color: var(--ink-2); margin-top: 4px; white-space: pre-wrap; }
 .msg-status { font-size: 12px; font-weight: 700; color: var(--muted); }
 .ms-sent { color: var(--ok); } .ms-failed { color: var(--bad); } .ms-queued { color: var(--info); } .ms-not_connected { color: var(--warn); }
 .slot-pick { margin-bottom: 14px; }
