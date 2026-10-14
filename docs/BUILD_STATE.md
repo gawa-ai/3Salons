@@ -36,3 +36,14 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Gallery: only the 4 photos Shahina sent are published; 42 others hidden (published=false), not deleted.
 - Migration `20261013194500_client_feedback_round1.sql` applied live (verified by SQL). DB tests green (incl. 16c-16g), e2e 33 checks pass.
 - Still open: opening hours, phone, prices; confirm "Mi Hijabby Sabiha"; demo accounts/sample data removal before go-live (needs explicit OK).
+
+## Round 2 client feedback (2026-10-14) — DONE
+- 7 amendments from the PDF: bridal names/roles, gallery captions (Shahina first), logos with one white circular border, neutral cards, no service descriptions (pricing notes kept), "Sabiha Patel", "Book Directly with Your Favourite Artist" intro, Training (enquire-only) for Shahina.
+- Migration `20261014050000_client_feedback_round2.sql` applied live and verified. Commit `011661b`.
+- Gallery blur: sources are low-res (~464x662); needs original photos from Shahina (as Document).
+
+## Round 3a client feedback (2026-10-14) — DONE
+- "15 min buffer" text removed from Studio booking details; "All bookings are strictly by appointment only." under opening hours; gallery images open in a lightbox (click/Esc to close).
+- Customer texts now include the studio address (`app.message_body`); migration `20261014090000_client_feedback_round3a.sql` applied live and verified. Commit `4cd8ace`.
+- DB suite green (incl. 16k), e2e 36 checks pass.
+- WAITING (round 3b): Shahina's contact number for confirmation text; opening hours 6:30am-5pm (which days); deposit flow (bank transfer vs Stripe, makeup-only amount, 24h expiry). Bank details must NEVER go in git/code; owner-editable setting only.
