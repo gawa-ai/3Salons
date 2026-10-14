@@ -6,8 +6,8 @@ Hanggang hindi pa naka-tsek lahat ng nasa ibaba, nananatiling `booking_mode = 'p
 - [ ] **Bago mag-live:** alisin din ang sample bookings/enquiries (numero `07700 9001xx`).
 - [ ] **Bago mag-live:** i-disable/burahin ang 4 demo accounts (`@sample.com`, mahina ang password) at saka gawin ang totoong owner invitation.
 - [x] Na-run ang `supabase/manual/01_pending_functions_and_storage.sql` sa "3 Salons" (verified live 2026-10-07).
-- [ ] Naka-link ang Netlify site `3salon` (`https://3salon.netlify.app`) sa `gawa-ai/3Salons` (main), at successful ang deploy.
-- [ ] Supabase Auth: Site URL `https://3salon.netlify.app` + `/reset` redirect, naka-off ang public sign-ups, custom SMTP.
+- [ ] Naka-link ang Netlify site `3salon` (`https://shahinaahmed.netlify.app`) sa `gawa-ai/3Salons` (main), at successful ang deploy.
+- [ ] Supabase Auth: Site URL `https://shahinaahmed.netlify.app` + `/reset` redirect, naka-off ang public sign-ups, custom SMTP.
 - [ ] Owner invitation (`02_owner_invitation.sql`), at naka-sign in si Shahina sa `/join`.
 
 ## B. Owner (Shahina, sa totoong site)

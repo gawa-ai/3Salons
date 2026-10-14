@@ -53,3 +53,9 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - 3c: client decided messages go out by SMS AND email. Every customer message is also recorded as an email row when the client left an email (`salons.email_connected` default false, so nothing is sent yet). Studio message log labels Text/Email. Migration `20261014110000_client_feedback_round3c_email.sql`.
 - Both channels need the client's own provider accounts (SMS and email sending), paid by the client; keys go in secure settings, never in git or chat.
 - STILL OPEN: deposit flow (bank transfer vs Stripe, makeup-only amount, 24h expiry), 6:30am-5pm days, Shahina phone number, original photos. AI voice: client said not now.
+
+## Lumipat ng Netlify (2026-10-14)
+- Bagong site: `https://shahinaahmed.netlify.app` (project `shahinaahmed`, deploy mula sa GitHub main). Lahat ng build settings at public keys ay nasa `netlify.toml`, kaya walang env vars na kailangan.
+- Edge function `accept-invite` (v3, live): tinatanggap na ang bagong origin. Ang lumang `3salon` origin ay nakalista pa rin.
+- Ang bagong site ay "Private" (Netlify team login) hanggang pindutin ang "Make public". Hindi pa ito mabubuksan ng client.
+- JG pa ang gagawa: Supabase Auth > URL Configuration: Site URL `https://shahinaahmed.netlify.app`, Redirect `https://shahinaahmed.netlify.app/reset`. I-unlink o i-pause ang lumang `3salon` site para hindi doble ang build.

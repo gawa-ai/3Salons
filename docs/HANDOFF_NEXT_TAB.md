@@ -6,7 +6,7 @@ Basahin muna ito, tapos `docs/BUILD_STATE.md`, `docs/ACCEPTANCE.md`, `docs/MISSI
 Website + booking system ng **Shahina Ahmed** (brand/owner lang, HINDI bookable artist) sa Blackburn. Tatlong artists: **Sofia MUA** (makeup), **Shirin Jal** (hair & makeup), **Mi Hijabby Sabiha** (hijab styling). Owner dashboard (All professionals / per-artist), staff dashboards na naka-scope sa sariling data, invitation-based auth, provisional bookings, bridal enquiries.
 
 - Repo: `gawa-ai/3Salons` (working copy `/home/claude/3salons`), branch main. Huling commit sa session na ito: `783c78b`.
-- Live site: https://3salon.netlify.app (Netlify deploy mula sa GitHub push; HINDI ko ito mabuksan/ma-verify mula sa workspace).
+- Live site: https://shahinaahmed.netlify.app (Netlify deploy mula sa GitHub push; HINDI ko ito mabuksan/ma-verify mula sa workspace).
 - Supabase project "3 Salons": `vqkrvbtndnnxpcemkuce` (eu-west-1). Supabase MCP (`execute_sql`, `apply_migration`, `deploy_edge_function`) gumagana.
 - Commit trailers: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` at `Claude-Session: <session url>`.
 
@@ -46,7 +46,7 @@ Website + booking system ng **Shahina Ahmed** (brand/owner lang, HINDI bookable 
 4. **Business info na kulang** (tingnan `docs/MISSING_INFO.md`): address, phone/WhatsApp, hours, service durations/prices, policies.
 5. **Pagpapatunay ng pangalan** kay JG: "Sofia MUA" vs "Sofia Musa" (logo lettering), "Mi Hijabby Sabiha" vs "Mi Hijab by Sabiha"; relasyon ng tatlong salons/iisang building?
 6. **Bago mag-go-live (kailangan ng explicit OK ni JG)**: tanggalin ang demo accounts at sample data; gumawa ng totoong owner invitation gamit ang email ni Shahina (naka-block ng `owner_exists` hangga't may demo owner).
-7. Para kay JG mismo (hindi ko magagawa): Supabase Auth settings — Site URL `https://3salon.netlify.app`, redirect `https://3salon.netlify.app/reset`, i-disable ang signups, SMTP credentials (siya ang maglalagay sa Dashboard); SimplyBooked cleanup.
+7. Para kay JG mismo (hindi ko magagawa): Supabase Auth settings — Site URL `https://shahinaahmed.netlify.app`, redirect `https://shahinaahmed.netlify.app/reset`, i-disable ang signups, SMTP credentials (siya ang maglalagay sa Dashboard); SimplyBooked cleanup.
 8. Acceptance checklist (`docs/ACCEPTANCE.md`) bago i-on ang online booking/SMS.
 
 ## 6. Mga bagay na dapat tandaan
