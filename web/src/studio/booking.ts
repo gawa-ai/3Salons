@@ -9,8 +9,15 @@ export interface Booking {
   professional_color: string; service_id: string; service: string; starts_at: string; ends_at: string; block_end: string;
   local_date: string; local_time: string; local_end: string; when: string; duration_min: number; buffer_min: number;
   price_pence: number | null; price_kind: string; price_label: string; version: number; created_at: string;
+  deposit_pence: number; deposit_status: 'none' | 'requested' | 'received' | 'waived'; deposit_due_at: string | null; deposit_label: string | null;
   confirmed_at: string | null; cancelled_at: string | null; status_reason: string | null;
   client_id: string; client_name: string; client_phone: string; client_email: string | null; customer_note: string | null; internal_note: string | null;
+}
+
+/** A pending booking whose deposit has been asked for reads "Awaiting deposit". */
+function badgeFor(b: Booking) {
+  if (b.status === 'pending' && b.deposit_status === 'requested') return h('span', { class: ['badge', 'badge-pending'], text: 'Awaiting deposit' });
+  return statusBadge(b.status);
 }
 
 export function bookingRow(b: Booking, onOpen: () => void, extra?: Node) {
@@ -20,17 +27,23 @@ export function bookingRow(b: Booking, onOpen: () => void, extra?: Node) {
       h('span', { class: 'brow-body' },
         h('span', { class: 'brow-client', text: b.client_name }),
         h('span', { class: 'brow-svc' }, proDot(b.professional_color), h('span', { text: `${b.service} with ${b.professional_short}` }))),
-      h('span', { class: 'brow-side' }, statusBadge(b.status), h('span', { class: 'brow-price', text: b.price_label }))),
+      h('span', { class: 'brow-side' }, badgeFor(b), h('span', { class: 'brow-price', text: b.price_label }))),
     extra ?? null);
 }
 
-/** Inline confirm / decline for pending requests. */
+/** Inline accept / deposit received / decline for pending requests. */
 export function quickActions(b: Booking, onDone: () => void) {
   if (b.status !== 'pending') return null;
-  const confirmBtn = button('Confirm', { size: 'sm', icon: 'check', onClick: async () => {
-    setBusy(confirmBtn, true, 'Confirming…');
-    try { await rpc('salon_dash_booking_action', { p_booking: b.id, p_action: 'confirm', p_version: b.version }); toast(`Confirmed ${b.client_name}`); onDone(); }
-    catch (e) { setBusy(confirmBtn, false); toast((e as Error).message, 'error'); }
+  const needsDeposit = b.deposit_pence > 0 && b.deposit_status === 'none';
+  const awaiting = b.deposit_status === 'requested';
+  const label = awaiting ? 'Deposit received' : needsDeposit ? 'Accept' : 'Confirm';
+  const confirmBtn = button(label, { size: 'sm', icon: 'check', onClick: async () => {
+    setBusy(confirmBtn, true, awaiting ? 'Confirming…' : needsDeposit ? 'Accepting…' : 'Confirming…');
+    try {
+      await rpc('salon_dash_booking_action', { p_booking: b.id, p_action: awaiting ? 'deposit_received' : 'confirm', p_version: b.version });
+      toast(awaiting ? `Confirmed ${b.client_name}: deposit received` : needsDeposit ? `Accepted ${b.client_name}. Deposit requested.` : `Confirmed ${b.client_name}`);
+      onDone();
+    } catch (e) { setBusy(confirmBtn, false); toast((e as Error).message, 'error'); }
   } });
   const declineBtn = button('Decline', { size: 'sm', variant: 'ghost', onClick: async () => {
     const c = await confirmDialog({ title: 'Decline this request?', message: `${b.client_name}, ${b.service} on ${b.when}. The time is released for other clients.`, confirmLabel: 'Decline request', danger: true, reasonLabel: 'Reason for the client (optional)' });
@@ -46,10 +59,11 @@ const HISTORY_LABEL: Record<string, string> = {
   'booking.declined': 'Declined', 'booking.cancelled': 'Cancelled', 'booking.completed': 'Marked completed', 'booking.no_show': 'Marked no-show',
   'booking.rescheduled': 'Moved', 'booking.reassigned': 'Moved to another professional', 'booking.reassigned_away': 'Moved to another professional',
   'booking.note': 'Studio note updated', 'booking.expired': 'Expired (not confirmed in time)',
+  'booking.deposit_requested': 'Accepted, deposit requested', 'booking.deposit_received': 'Deposit received, confirmed', 'booking.deposit_expired': 'Expired (deposit not received)',
 };
 const PURPOSE_LABEL: Record<string, string> = {
   request_received: 'Request received (to client)', new_request: 'New request (to artist)', confirmed: 'Confirmation (to client)',
-  declined: 'Declined (to client)', cancelled: 'Cancellation (to client)', cancelled_pro: 'Cancellation (to artist)', rescheduled: 'Moved (to client)', new_enquiry: 'New enquiry (to artist)',
+  declined: 'Declined (to client)', deposit_request: 'Deposit request (to client)', deposit_received: 'Deposit received (to client)', deposit_expired: 'Deposit missed (to client)', cancelled: 'Cancellation (to client)', cancelled_pro: 'Cancellation (to artist)', rescheduled: 'Moved (to client)', new_enquiry: 'New enquiry (to artist)',
 };
 export const MSG_STATUS: Record<string, string> = { not_connected: 'Not sent: SMS not connected', queued: 'Queued', sent: 'Sent', failed: 'Failed', skipped: 'Skipped', cancelled: 'Cancelled' };
 
@@ -85,8 +99,13 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
     } });
 
     mount(d.body,
-      h('div', { class: 'bk-head' }, statusBadge(b.status), h('span', { class: 'bk-ref', text: `Ref ${b.ref}` })),
-      b.status === 'pending' ? notice('warn', 'Awaiting confirmation. The client has been told the booking is provisional until it is confirmed.') : null,
+      h('div', { class: 'bk-head' }, badgeFor(b), h('span', { class: 'bk-ref', text: `Ref ${b.ref}` })),
+      b.status === 'pending' && b.deposit_status === 'requested'
+        ? notice('warn', `Deposit of ${b.deposit_label} requested. The client has until ${b.deposit_due_at ? dateTimeShort(b.deposit_due_at) : 'the deadline'} to pay. Check your own bank before pressing "Deposit received". The time is released automatically if it is not paid.`)
+        : b.status === 'pending' ? notice('warn', b.deposit_pence > 0
+            ? `Awaiting your answer. If you accept, the client is asked for a ${b.deposit_label} deposit and the time is held until it is paid.`
+            : 'Awaiting confirmation. The client has been told the booking is provisional until it is confirmed.') : null,
+      b.deposit_status === 'received' ? notice('info', `Deposit of ${b.deposit_label} received. It is deducted on the day.`) : null,
       b.status_reason && ['declined', 'cancelled', 'expired'].includes(b.status) ? notice('info', `Reason: ${b.status_reason}`) : null,
       h('dl', { class: 'kv' },
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(b.local_date)}, ${time12(b.local_time)} to ${time12(b.local_end)}` }),
@@ -112,7 +131,16 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
 
     const buttons: Node[] = [];
     if (b.status === 'pending') {
-      buttons.push(button('Confirm', { icon: 'check', onClick: () => act('confirm', 'Confirm') }));
+      if (b.deposit_status === 'requested') {
+        buttons.push(button('Deposit received', { icon: 'check', onClick: () => act('deposit_received', 'Deposit received', { confirm: `Confirm that you have checked your bank and the ${b.deposit_label} deposit has arrived. The booking is confirmed and ${b.client_name} is told.` }) }));
+        const askMsg = (r.messages as any[]).find((x) => x.purpose === 'deposit_request');
+        if (askMsg) buttons.push(button('Copy deposit message', { variant: 'secondary', onClick: async () => {
+          try { await navigator.clipboard.writeText(askMsg.body); toast('Message copied. Paste it into WhatsApp or a text.'); } catch { toast('Could not copy. Select the message below instead.', 'error'); }
+        } }));
+        buttons.push(button('Confirm without deposit', { variant: 'ghost', onClick: () => act('confirm', 'Confirm without deposit', { confirm: 'The booking is confirmed without waiting for the deposit.' }) }));
+      } else {
+        buttons.push(button(b.deposit_pence > 0 ? 'Accept and ask for deposit' : 'Confirm', { icon: 'check', onClick: () => act('confirm', b.deposit_pence > 0 ? 'Accept' : 'Confirm') }));
+      }
       buttons.push(button('Decline', { variant: 'secondary', onClick: () => act('decline', 'Decline request', { confirm: 'The time is released and the client is told you cannot take it.', reason: true, danger: true }) }));
     }
     if (['pending', 'confirmed'].includes(b.status)) {

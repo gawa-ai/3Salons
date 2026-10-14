@@ -64,3 +64,13 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Mohsin bought `shahinaahmed.co.uk`. Edge function `accept-invite` v4 (live) already accepts it and `www`.
 - Pending: add the domain in Netlify (Domain management), set DNS at the registrar (the values Netlify shows), then Supabase Auth Site URL `https://shahinaahmed.co.uk` + redirect `https://shahinaahmed.co.uk/reset`.
 - Later, the same domain can send email (needs the email provider's SPF/DKIM DNS records).
+
+## Round 4: deposit flow (2026-10-14) — BUILT + TESTED LOCAL, NOT YET LIVE
+- Flow (Shahina's wording): customer books online (pending) -> artist accepts -> if the service has a deposit, the booking stays pending, the slot is held for 24h (`salons.deposit_hours`) and the customer gets the deposit request (amount, "non refundable", "deducted on the day", payment details, reference) -> the studio checks its own bank and presses "Deposit received" -> confirmed + "deposit received" message -> no deposit in time = expired, slot released, customer told.
+- Bank transfer only. No money moves on the website. Payment details are typed by the owner in Studio > Settings > Deposits (`salons.deposit_instructions`); they are NEVER in git, code or the audit log.
+- Migration `20261014120000_deposit_flow.sql`: deposit columns (services, salons, bookings), snapshot trigger, new message texts (`deposit_request`, `deposit_received`, `deposit_expired`), `salon_dash_booking_action` (confirm -> request deposit; `deposit_received`), `expire_stale`/`expire_all`, `salon_public_manage` (shows payment details while a deposit is due), `salon_owner_deposits` / `salon_owner_deposits_save`. Default deposits: hair 10, hijab 10, hair+makeup 20 (client's words). Makeup only, saree, bridal: NOT set (unconfirmed), owner sets in Settings.
+- Auto-release of unpaid deposits runs every 10 minutes only if pg_cron is enabled in Supabase; otherwise it happens when Studio is opened.
+- Messages still go nowhere until SMS/email providers are connected: Studio has a "Copy deposit message" button to send it by WhatsApp meanwhile; the customer's booking link page also shows the payment details.
+- Not built: receipt/screenshot upload (optional phase 2; the studio confirms from its own bank).
+- Tests: DB 112 incl. D1-D16 + concurrency; e2e 38 (O9, O10); typecheck + build OK.
+- DO NOT push to main before the migration is applied live (the Studio Settings page calls the new functions).

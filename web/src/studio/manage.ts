@@ -352,6 +352,7 @@ export async function settingsPage(ctx: Ctx) {
   mount(ctx.content, spinner());
   const r = await rpc<any>('salon_owner_settings', { p_salon: ctx.salonId });
   const s = r.settings;
+  const dep = await rpc<any>('salon_owner_deposits', { p_salon: ctx.salonId });
   const f = (label: string, key: string, o: Partial<Parameters<typeof field>[0]> = {}) => { const x = field({ label, name: key, value: s[key] ?? '', ...o }); return [key, x] as const; };
   const fields = [f('Studio name', 'name'), f('Tagline', 'tagline', { maxlength: 200 }), f('Town or city', 'city'), f('Full address', 'address', { hint: 'Leave blank until confirmed. Shown on the website.' }),
     f('Phone', 'phone', { type: 'tel' }), f('WhatsApp number', 'whatsapp', { type: 'tel' }), f('Email', 'email', { type: 'email' }), f('Studio Instagram link', 'instagram_url')];
@@ -373,20 +374,42 @@ export async function settingsPage(ctx: Ctx) {
     try { await rpc('salon_owner_settings_save', { p_salon: ctx.salonId, p_payload: payload }); toast('Settings saved'); await loadMe(true); navigate('/studio/settings', { replace: true }); }
     catch (e) { setBusy(save, false); mount(err, notice('error', (e as Error).message)); }
   } });
+  // ---- deposits (bank transfer, checked by the studio)
+  const depInstr = textarea({ label: 'How clients pay the deposit', name: 'deposit_instructions', value: dep.instructions ?? '', rows: 4, maxlength: 1000,
+    hint: 'For example your account name, sort code and account number. This is sent to the client in the deposit request, and is never stored in the website code.' });
+  const depHours = field({ label: 'Hours to pay the deposit', name: 'deposit_hours', type: 'number', min: '1', max: '168', value: String(dep.hours ?? 24) });
+  const depInputs = (dep.services as any[]).map((v) => {
+    const x = field({ label: `${v.professional}: ${v.name} (${v.price_label})`, name: `dep-${v.id}`, type: 'number', min: '0', max: '1000', step: '1', value: String(v.deposit_pence / 100), hint: '£, 0 = no deposit' });
+    return { id: v.id as string, x };
+  });
+  const depErr = h('div');
+  const depSave = button('Save deposit settings', { onClick: async () => {
+    mount(depErr);
+    setBusy(depSave, true, 'Saving…');
+    try {
+      await rpc('salon_owner_deposits_save', { p_salon: ctx.salonId, p_payload: {
+        instructions: depInstr.input.value, hours: Number(depHours.input.value),
+        services: depInputs.map((d) => ({ id: d.id, deposit_pence: Math.round(Number(d.x.input.value || 0) * 100) })) } });
+      toast('Deposit settings saved'); setBusy(depSave, false);
+    } catch (e) { setBusy(depSave, false); mount(depErr, notice('error', (e as Error).message)); }
+  } });
   mount(ctx.content,
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Studio details' }), h('div', { class: 'form-grid' }, fields.map(([, x]) => x.wrap))),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Online booking' }), mode.wrap, h('div', { class: 'form-grid' }, notice1.wrap, ahead.wrap, grid.wrap), policy.wrap),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Integrations' }),
       h('dl', { class: 'kv' }, h('dt', { text: 'Text messages' }), h('dd', { text: s.sms_connected ? 'Connected' : 'Not connected' }),
-        h('dt', { text: 'Phone answering' }), h('dd', { text: 'Not connected' }), h('dt', { text: 'Payments and deposits' }), h('dd', { text: 'Not connected. No money is taken online.' }))),
-    err, h('div', { class: 'row-end' }, save));
+        h('dt', { text: 'Phone answering' }), h('dd', { text: 'Not connected' }), h('dt', { text: 'Payments and deposits' }), h('dd', { text: 'Bank transfer to the studio, checked by you. No money is taken online.' }))),
+    err, h('div', { class: 'row-end' }, save),
+    h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Deposits' }),
+      h('p', { class: 'muted small', text: 'When you accept a booking that has a deposit, the client is asked to pay it by bank transfer. You check your own bank, then press "Deposit received" on the booking. Nothing is paid on the website.' }),
+      depInstr.wrap, depHours.wrap, h('div', { class: 'form-grid' }, depInputs.map((d) => d.x.wrap)), depErr, h('div', { class: 'row-end' }, depSave)));
 }
 
 // ===================================================================== audit (owner)
 const ACTION_LABEL: Record<string, string> = {
   'booking.requested': 'Website booking request', 'booking.created': 'Booking created', 'booking.confirmed': 'Booking confirmed', 'booking.declined': 'Booking declined',
   'booking.cancelled': 'Booking cancelled', 'booking.completed': 'Marked completed', 'booking.no_show': 'Marked no-show', 'booking.rescheduled': 'Booking moved',
-  'booking.reassigned': 'Booking moved to another professional', 'booking.reassigned_away': 'Booking moved away', 'booking.note': 'Booking note', 'booking.expired': 'Request expired',
+  'booking.reassigned': 'Booking moved to another professional', 'booking.reassigned_away': 'Booking moved away', 'booking.note': 'Booking note', 'booking.expired': 'Request expired', 'booking.deposit_requested': 'Deposit requested', 'booking.deposit_received': 'Deposit received', 'booking.deposit_expired': 'Deposit not received, expired', 'deposits.updated': 'Deposit settings changed',
   'client.updated': 'Client updated', 'enquiry.created': 'Enquiry received', 'enquiry.updated': 'Enquiry updated', 'service.created': 'Service added', 'service.updated': 'Service changed',
   'hours.updated': 'Working hours changed', 'salon_hours.updated': 'Studio hours changed', 'time_off.added': 'Time off added', 'time_off.removed': 'Time off removed',
   'invitation.created': 'Invitation created', 'invitation.accepted': 'Invitation accepted', 'invitation.revoked': 'Invitation revoked', 'membership.disabled': 'Login disabled',

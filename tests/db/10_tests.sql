@@ -437,4 +437,113 @@ select pg_temp.check(
                               and s2.purpose = e.purpose and s2.audience = 'customer' and s2.body = e.body))
   and not exists (select 1 from app.notifications e where e.channel = 'email' and e.audience <> 'customer'),
   '16o customer email rows exist (not sent while email is off), match their text, and are never made for artists');
+
+-- =====================================================================
+-- Deposit flow (round 4): accept -> deposit requested -> received -> confirmed; expiry releases the slot
+-- =====================================================================
+reset role;
+-- (the 16k/16l re-applications above restore an older message_body; re-apply the deposit migration last)
+\i ../../supabase/migrations/20261014120000_deposit_flow.sql
+select pg_temp.check((select count(*) from app.services where category in ('hair','hijab') and price_kind <> 'enquire' and deposit_pence <> 1000) = 0
+  and (select count(*) from app.services where category in ('makeup','saree','bridal')) > 0
+  and (select count(*) from app.services where category in ('makeup','saree','bridal') and deposit_pence <> 0) = 0,
+  'D1 hair and hijab default to a 10 pound deposit; makeup, saree and bridal are left for the owner to set');
+
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_owner_deposits_save(:'salon', jsonb_build_object('hours', 24,
+  'services', jsonb_build_array(jsonb_build_object('id', :'s_sofia_makeup', 'deposit_pence', 1000)))) as dsave \gset
+reset role;
+select pg_temp.check((:'dsave'::jsonb)->>'ok' = 'true'
+  and (select deposit_pence from app.services where id = :'s_sofia_makeup') = 1000, 'D2 owner sets a per-service deposit');
+
+set role anon; select pg_temp.login(null);
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'d1','time','15:00','name','Dina Deposit','phone','07700 900801','email','dina@example.com',
+  'idempotency_key','idem-deposit-000000001')) as dk1 \gset
+select (:'dk1'::jsonb)->>'manage_token' as dk1_token \gset
+reset role;
+select id as dk1_id from app.bookings where ref = (:'dk1'::jsonb)->>'ref' \gset
+select pg_temp.check((:'dk1'::jsonb)->>'ok' = 'true'
+  and (select status || '/' || deposit_status || '/' || deposit_pence from app.bookings where id = :'dk1_id') = 'pending/none/1000',
+  'D3 booking snapshots the deposit and starts pending with no deposit asked yet', :'dk1'::jsonb);
+
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.q(format($$select public.salon_dash_booking_action(%L, 'confirm')$$, :'dk1_id')) as dr0 \gset
+reset role;
+select pg_temp.check((:'dr0'::jsonb)->>'err' = 'deposit_details_missing'
+  and (select status from app.bookings where id = :'dk1_id') = 'pending',
+  'D4 cannot ask for a deposit until the owner has typed the payment details', :'dr0'::jsonb);
+
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_owner_deposits_save(:'salon', jsonb_build_object('instructions',
+  'Pay to: Test Bank, sort code 00-00-00, account 12345678, name Test Studio Ltd.')) as dsave2 \gset
+select pg_temp.login(:'u_sofia');
+select public.salon_dash_booking_action(:'dk1_id', 'confirm') as dr1 \gset
+reset role;
+select pg_temp.check((:'dr1'::jsonb)->>'deposit_requested' = 'true'
+  and (select status || '/' || deposit_status from app.bookings where id = :'dk1_id') = 'pending/requested'
+  and (select deposit_due_at between now() + interval '23 hours 55 minutes' and now() + interval '24 hours 5 minutes'
+         from app.bookings where id = :'dk1_id'),
+  'D5 accepting keeps the booking pending, holds the slot and starts a 24 hour deposit window', :'dr1'::jsonb);
+select pg_temp.check((select body like '%non refundable deposit%' and body like '%£10%' and body like '%within 24 hours%'
+                        and body like '%deducted on the day%' and body like '%Test Bank, sort code 00-00-00%'
+                        and body like '%ref ' || b.ref || '%' and body not like '%{%'
+                        from app.notifications n join app.bookings b on b.id = n.booking_id
+                       where n.booking_id = :'dk1_id' and n.purpose = 'deposit_request' and n.channel = 'sms'),
+  'D6 deposit request text carries amount, wording, payment details and reference');
+select pg_temp.check(exists (select 1 from app.notifications where booking_id = :'dk1_id' and purpose = 'deposit_request'
+                               and channel = 'email' and to_addr = 'dina@example.com'),
+  'D7 the same request is recorded by email too');
+select pg_temp.check((select count(*) from app.notifications where booking_id = :'dk1_id' and purpose = 'confirmed') = 0,
+  'D8 no confirmation text before the deposit is received');
+
+set role anon; select pg_temp.login(null);
+select public.salon_public_manage(:'dk1_token') as mg1 \gset
+select pg_temp.check((:'mg1'::jsonb)#>>'{booking,deposit_instructions}' like 'Pay to: Test Bank%'
+  and (:'mg1'::jsonb)#>>'{booking,deposit_label}' = '£10', 'D9 customer manage page shows the payment details while a deposit is due');
+select pg_temp.check((public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'d1','time','15:00','name','Other Person','phone','07700 900802','idempotency_key','idem-deposit-000000002')))->>'error' = 'slot_taken',
+  'D10 the slot stays held while the deposit is awaited');
+
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.salon_dash_booking_action(:'dk1_id', 'deposit_received') as dr2 \gset
+reset role;
+select pg_temp.check((:'dr2'::jsonb)->>'ok' = 'true'
+  and (select status || '/' || deposit_status from app.bookings where id = :'dk1_id') = 'confirmed/received'
+  and exists (select 1 from app.notifications where booking_id = :'dk1_id' and purpose = 'deposit_received'
+                and body like '%received your £10 deposit%' and body like '%is confirmed%'),
+  'D11 deposit received confirms the booking and tells the customer', :'dr2'::jsonb);
+
+-- expiry: a second request, deposit never paid (uses the last free start time of that day)
+set role anon; select pg_temp.login(null);
+select (public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1'))->'slots'->-1->>'time' as dk2_time \gset
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'d1','time',:'dk2_time','name','Eli Expire','phone','07700 900803',
+  'idempotency_key','idem-deposit-000000003')) as dk2 \gset
+reset role;
+select id as dk2_id from app.bookings where ref = (:'dk2'::jsonb)->>'ref' \gset
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.salon_dash_booking_action(:'dk2_id', 'confirm') as dr3 \gset
+reset role;
+update app.bookings set deposit_due_at = now() - interval '1 minute' where id = :'dk2_id';
+select app.expire_all();
+select pg_temp.check((select status from app.bookings where id = :'dk2_id') = 'expired'
+  and exists (select 1 from app.notifications where booking_id = :'dk2_id' and purpose = 'deposit_expired' and channel = 'sms')
+  and (select status from app.bookings where id = :'dk1_id') = 'confirmed',
+  'D12 unpaid deposit expires the booking and tells the customer; paid bookings are untouched');
+set role anon; select pg_temp.login(null);
+select pg_temp.check((public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'d1','time',:'dk2_time','name','Next Customer','phone','07700 900804','idempotency_key','idem-deposit-000000004')))->>'ok' = 'true',
+  'D13 the expired slot is released for other customers');
+
+-- permissions and privacy
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.q(format($$select public.salon_owner_deposits_save(%L, '{"hours": 48}')$$, :'salon')) as dperm \gset
+select pg_temp.check((:'dperm'::jsonb) ? 'err', 'D14 artists cannot change deposit settings', :'dperm'::jsonb);
+set role anon; select pg_temp.login(null);
+select pg_temp.q(format($$select public.salon_owner_deposits(%L)$$, :'salon')) as dperm2 \gset
+select pg_temp.check((:'dperm2'::jsonb) ? 'err', 'D15 visitors cannot read deposit settings', :'dperm2'::jsonb);
+reset role;
+select pg_temp.check(not exists (select 1 from app.audit_log where detail::text like '%sort code%' or detail::text like '%12345678%'),
+  'D16 payment details never appear in the audit log');
 \echo ALL_TESTS_PASSED

@@ -116,7 +116,11 @@ export async function managePage(app: HTMLElement) {
         h('dt', { text: 'Service' }), h('dd', { text: `${b.service}, ${durationLabel(b.duration_min)}, ${b.price_label}` }),
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(b.local_date)} at ${time12(b.local_time)} (UK time)` }),
         s.address ? [h('dt', { text: 'Where' }), h('dd', { text: s.address })] : null),
-      b.status === 'pending' ? notice('info', `${b.professional_short} has not confirmed this booking yet. The time is held for you in the meantime.`) : null,
+      b.status === 'pending' && b.deposit_status === 'requested' ? h('div', { class: 'deposit-box' },
+        notice('warn', `${b.professional_short} can take your booking. To secure it, please pay a ${b.deposit_label} non refundable deposit${b.deposit_due_at ? ' by ' + new Date(b.deposit_due_at).toLocaleString('en-GB', { timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}. It is deducted on the day.`),
+        b.deposit_instructions ? h('p', { class: 'pre', text: b.deposit_instructions }) : null,
+        h('p', { class: 'muted small', text: `Please use your name or reference ${b.ref} as the payment reference. The studio confirms your booking once the deposit has arrived.` }))
+      : b.status === 'pending' ? notice('info', `${b.professional_short} has not confirmed this booking yet. The time is held for you in the meantime.`) : null,
       b.status === 'declined' ? notice('warn', `${b.professional_short} could not take this booking${b.status_reason ? ': ' + b.status_reason : ''}. Please choose another time.`) : null,
       s.booking_policy ? h('div', { class: 'policy' }, h('p', { class: 'policy-title', text: 'Booking policy' }), h('p', { class: 'policy-text', text: s.booking_policy })) : null,
       h('div', { class: 'manage-actions' }, cancelBtn, linkButton('Make another booking', '/book', { variant: 'ghost' })),

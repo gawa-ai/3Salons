@@ -197,6 +197,12 @@ async function main() {
     await page.goto(BASE + '/studio/settings');
     await page.waitForSelector('select[name=mode]');
     await shot(page, 'desktop-owner-settings');
+    check(await page.locator('h3.panel-title', { hasText: 'Deposits' }).isVisible()
+      && (await page.locator('input[name^="dep-"]').count()) >= 4, 'O9 owner settings has a Deposits panel with an amount per service');
+    await page.fill('textarea[name=deposit_instructions]', 'Test bank, sort code 00-00-00, account 12345678');
+    await page.click('button:has-text("Save deposit settings")');
+    await page.waitForSelector('text=Deposit settings saved');
+    check(sql(`select deposit_instructions from app.salons limit 1`).startsWith('Test bank'), 'O10 payment details are saved from Studio (stored in the database, not in code)');
     await page.goto(BASE + '/studio/audit');
     await page.waitForSelector('.table');
     await shot(page, 'desktop-owner-audit', false);
