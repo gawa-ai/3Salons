@@ -9,6 +9,8 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const DEFAULT_ORIGINS = [
+  "https://shahinaahmed.co.uk",
+  "https://www.shahinaahmed.co.uk",
   "https://shahinaahmed.netlify.app",
   "https://3salon.netlify.app",
   "https://shahina-ahmed-salon.netlify.app",

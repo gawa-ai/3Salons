@@ -59,3 +59,8 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Edge function `accept-invite` (v3, live): tinatanggap na ang bagong origin. Ang lumang `3salon` origin ay nakalista pa rin.
 - Ang bagong site ay "Private" (Netlify team login) hanggang pindutin ang "Make public". Hindi pa ito mabubuksan ng client.
 - JG pa ang gagawa: Supabase Auth > URL Configuration: Site URL `https://shahinaahmed.netlify.app`, Redirect `https://shahinaahmed.netlify.app/reset`. I-unlink o i-pause ang lumang `3salon` site para hindi doble ang build.
+
+## Domain (2026-10-14)
+- Mohsin bought `shahinaahmed.co.uk`. Edge function `accept-invite` v4 (live) already accepts it and `www`.
+- Pending: add the domain in Netlify (Domain management), set DNS at the registrar (the values Netlify shows), then Supabase Auth Site URL `https://shahinaahmed.co.uk` + redirect `https://shahinaahmed.co.uk/reset`.
+- Later, the same domain can send email (needs the email provider's SPF/DKIM DNS records).
