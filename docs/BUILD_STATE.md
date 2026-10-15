@@ -79,3 +79,9 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Deposit request text now follows Shahina's own wording line by line (migration `20261015010000_deposit_message_format.sql`, applied live): "{pro} is available for {service} on {when}", studio note, deposit sentence, her payment details (typed in Studio), "Please leave your ref ... as the payment reference", then signature block (salon name, "Makeup Artist", address lines, private number). Line breaks are kept; the Studio drawer shows them (`white-space: pre-wrap`) and "Copy deposit message" copies them as-is. Test D21 + updated D17.
 - Opening hours: studio and all four artists 06:30-17:00 every day (live data), `hours_confirmed = true`, so the website shows the hours. The "will be published soon" placeholder text is removed from the site.
 - Applied live via SQL (apply_migration prompt kept being cancelled): deposit_flow (by JG in the SQL editor), message format (execute_sql).
+
+## Round 6 (2026-10-15): each artist can be paid into their own bank account
+- Client question: can artists be paid into their own banks? Yes. Studio > Settings > Deposits now has an optional own-account box per artist. Blank = the studio details are used. The deposit request text and the client's booking page use the artist's account when set.
+- Stored in `app.professional_payment_details` (own table, RLS on, no API access, never in git, never in the audit log). Migration `20261015030000_artist_payment_details.sql`, applied live with execute_sql and verified (table, RLS, grants, function bodies). Tests D22-D28 (DB 112 + concurrency OK), e2e O11a/O11b (40 checks).
+- Only the owner can set artist accounts (artists cannot read or change them).
+- Email: Mohsin offered bookings@shahinaahmed.co.uk for notification emails. Needs DNS access (SPF/DKIM) when we set up the email provider.

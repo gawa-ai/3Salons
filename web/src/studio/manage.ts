@@ -382,6 +382,12 @@ export async function settingsPage(ctx: Ctx) {
     const x = field({ label: `${v.professional}: ${v.name} (${v.price_label})`, name: `dep-${v.id}`, type: 'number', min: '0', max: '1000', step: '1', value: String(v.deposit_pence / 100), hint: '£, 0 = no deposit' });
     return { id: v.id as string, x };
   });
+  // an artist can be paid into her own account; blank = the studio details above
+  const depPros = ((dep.professionals ?? []) as any[]).map((p) => {
+    const x = textarea({ label: `${p.name}: her own account (optional)`, name: `dep-pro-${p.id}`, value: p.instructions ?? '', rows: 3, maxlength: 1000,
+      hint: 'Leave blank to use the studio details above. If filled in, clients booking with her are asked to pay into this account instead.' });
+    return { id: p.id as string, x };
+  });
   const depErr = h('div');
   const depSave = button('Save deposit settings', { onClick: async () => {
     mount(depErr);
@@ -389,6 +395,7 @@ export async function settingsPage(ctx: Ctx) {
     try {
       await rpc('salon_owner_deposits_save', { p_salon: ctx.salonId, p_payload: {
         instructions: depInstr.input.value, hours: Number(depHours.input.value),
+        professionals: depPros.map((d) => ({ id: d.id, instructions: d.x.input.value })),
         services: depInputs.map((d) => ({ id: d.id, deposit_pence: Math.round(Number(d.x.input.value || 0) * 100) })) } });
       toast('Deposit settings saved'); setBusy(depSave, false);
     } catch (e) { setBusy(depSave, false); mount(depErr, notice('error', (e as Error).message)); }
@@ -402,7 +409,9 @@ export async function settingsPage(ctx: Ctx) {
     err, h('div', { class: 'row-end' }, save),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Deposits' }),
       h('p', { class: 'muted small', text: 'When you accept a booking that has a deposit, the client is asked to pay it by bank transfer. You check your own bank, then press "Deposit received" on the booking. Nothing is paid on the website.' }),
-      depInstr.wrap, depHours.wrap, h('div', { class: 'form-grid' }, depInputs.map((d) => d.x.wrap)), depErr, h('div', { class: 'row-end' }, depSave)));
+      depInstr.wrap, depHours.wrap,
+      h('h4', { class: 'sub-title', text: 'Pay each artist into their own account (optional)' }), ...depPros.map((d) => d.x.wrap),
+      h('h4', { class: 'sub-title', text: 'Deposit per service' }), h('div', { class: 'form-grid' }, depInputs.map((d) => d.x.wrap)), depErr, h('div', { class: 'row-end' }, depSave)));
 }
 
 // ===================================================================== audit (owner)

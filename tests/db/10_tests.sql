@@ -445,6 +445,7 @@ reset role;
 -- (the 16k/16l re-applications above restore an older message_body; re-apply the deposit migration last)
 \i ../../supabase/migrations/20261014120000_deposit_flow.sql
 \i ../../supabase/migrations/20261015010000_deposit_message_format.sql
+\i ../../supabase/migrations/20261015030000_artist_payment_details.sql
 select pg_temp.check((select count(*) from app.services where category in ('hair','hijab') and price_kind <> 'enquire' and deposit_pence <> 1000) = 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal')) > 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal') and deposit_pence <> 0) = 0,
@@ -579,4 +580,64 @@ select pg_temp.check((select app.message_body('deposit_request', sa, pr, k, cl) 
                         from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
                         join app.clients cl on cl.id = k.client_id where k.id = :'dk1_id'),
   'D21 deposit message layout matches the client wording, line by line');
+
+-- Round 6: an artist can be paid into their own account; others fall back to the studio details
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_owner_deposits_save(:'salon', jsonb_build_object('professionals', jsonb_build_array(
+  jsonb_build_object('id', :'p_sofia', 'instructions', 'Pay to Sofia: Test Bank 2, sort code 11-11-11, account 87654321')))) as asave \gset
+select public.salon_owner_deposits(:'salon') as aget \gset
+reset role;
+select pg_temp.check((:'asave'::jsonb)->>'ok' = 'true'
+  and (select count(*) from app.professional_payment_details) = 1
+  and (select count(*) from jsonb_array_elements((:'aget'::jsonb)->'professionals') e
+        where e->>'instructions' like 'Pay to Sofia%') = 1,
+  'D22 owner saves and reads an artist''s own payment details', :'asave'::jsonb);
+
+set role anon; select pg_temp.login(null);
+select (public.salon_public_slots('shahina-ahmed', 'sofia-mua', :'s_sofia_makeup', :'d1'))->'slots'->0->>'time' as e1_time \gset
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'d1','time',:'e1_time','name','Ava Own','phone','07700 900811','idempotency_key','idem-artist-bank-0000001')) as e1 \gset
+select (:'e1'::jsonb)->>'manage_token' as e1_token \gset
+select (public.salon_public_slots('shahina-ahmed', 'shirin-jal', :'s_shirin_hair', :'d1'))->'slots'->0->>'time' as e2_time \gset
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair',
+  'date',:'d1','time',:'e2_time','name','Bea Studio','phone','07700 900812','idempotency_key','idem-artist-bank-0000002')) as e2 \gset
+reset role;
+select id as e1_id from app.bookings where ref = (:'e1'::jsonb)->>'ref' \gset
+select id as e2_id from app.bookings where ref = (:'e2'::jsonb)->>'ref' \gset
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_dash_booking_action(:'e1_id', 'confirm') as e1r \gset
+select public.salon_dash_booking_action(:'e2_id', 'confirm') as e2r \gset
+reset role;
+select pg_temp.check((:'e1r'::jsonb)->>'deposit_requested' = 'true' and (:'e2r'::jsonb)->>'deposit_requested' = 'true'
+  and (select body like '%Pay to Sofia: Test Bank 2%' and body not like '%Test Studio Ltd%' and body not like '%{%'
+         from app.notifications where booking_id = :'e1_id' and purpose = 'deposit_request' and channel = 'sms'),
+  'D23 the artist''s own account is used in her client''s deposit request', :'e1r'::jsonb);
+select pg_temp.check((select body like '%Test Studio Ltd%' and body not like '%Test Bank 2%'
+                        from app.notifications where booking_id = :'e2_id' and purpose = 'deposit_request' and channel = 'sms'),
+  'D24 an artist without her own account falls back to the studio details');
+
+set role anon; select pg_temp.login(null);
+select public.salon_public_manage(:'e1_token') as e1m \gset
+reset role;
+select pg_temp.check((:'e1m'::jsonb)#>>'{booking,deposit_instructions}' like 'Pay to Sofia%',
+  'D25 the client''s booking page shows the artist''s own payment details');
+
+select pg_temp.check(not exists (select 1 from app.audit_log where detail::text like '%Test Bank 2%' or detail::text like '%87654321%'),
+  'D26 artist payment details never appear in the audit log');
+
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.q(format($$select public.salon_owner_deposits_save(%L, jsonb_build_object('professionals', jsonb_build_array(jsonb_build_object('id', %L, 'instructions', 'x'))))$$, :'salon', :'p_sofia')) as aperm \gset
+select pg_temp.q($$select count(*) from app.professional_payment_details$$) as aperm2 \gset
+reset role;
+select pg_temp.check((:'aperm'::jsonb) ? 'err' and (:'aperm2'::jsonb) ? 'err',
+  'D27 artists cannot change or read the payment details table directly', jsonb_build_array(:'aperm'::jsonb, :'aperm2'::jsonb));
+
+set role authenticated; select pg_temp.login(:'u_owner');
+select pg_temp.q(format($$select public.salon_owner_deposits_save(%L, jsonb_build_object('professionals', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'instructions', 'x'))))$$, :'salon')) as abad \gset
+select public.salon_owner_deposits_save(:'salon', jsonb_build_object('professionals', jsonb_build_array(
+  jsonb_build_object('id', :'p_sofia', 'instructions', '   ')))) as aclear \gset
+reset role;
+select pg_temp.check((:'abad'::jsonb) ? 'err' and (select count(*) from app.professional_payment_details) = 0
+  and (select app.deposit_payment_text(sa, :'p_sofia') like 'Pay to: Test Bank%' from app.salons sa),
+  'D28 unknown artists are refused, and a blank entry removes the artist account (studio details apply again)', :'abad'::jsonb);
 \echo ALL_TESTS_PASSED

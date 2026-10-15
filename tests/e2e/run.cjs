@@ -203,6 +203,11 @@ async function main() {
     await page.click('button:has-text("Save deposit settings")');
     await page.waitForSelector('text=Deposit settings saved');
     check(sql(`select deposit_instructions from app.salons limit 1`).startsWith('Test bank'), 'O10 payment details are saved from Studio (stored in the database, not in code)');
+    check((await page.locator('textarea[name^="dep-pro-"]').count()) === 4, 'O11a each artist has an optional own-account box in Settings');
+    await page.locator('textarea[name^="dep-pro-"]').first().fill('Artist own account, sort code 11-11-11, account 87654321');
+    await page.click('button:has-text("Save deposit settings")');
+    await page.waitForSelector('text=Deposit settings saved');
+    check(sql(`select count(*) from app.professional_payment_details where instructions like 'Artist own account%'`) === '1', "O11b an artist's own account is saved from Studio");
     await page.goto(BASE + '/studio/audit');
     await page.waitForSelector('.table');
     await shot(page, 'desktop-owner-audit', false);

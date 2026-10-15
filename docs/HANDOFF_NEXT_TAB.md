@@ -52,3 +52,7 @@ Huling update: 2026-10-14. Basahin muna ito, tapos `docs/BUILD_STATE.md` ("Round
 ## UPDATE 2026-10-15
 - Deposit flow + message format are LIVE (DB) and pushed. Studio and artist hours 06:30-17:00 every day, hours_confirmed = true.
 - JG's rule: follow the client's given instructions exactly, do not decide on your own, do not re-ask answered questions. Makeup-only/saree/bridal deposits and gallery originals are NOT to be asked again (left as is). Only open items for Mohsin: bank details + private phone entered by Shahina in Studio > Settings, and SMS sender name + email address.
+
+## UPDATE 2026-10-15 (later)
+- Per-artist bank accounts are LIVE (migration 20261015030000). Owner sets them in Studio > Settings > Deposits.
+- Mohsin will create bookings@shahinaahmed.co.uk for notification emails. Next: set up the email provider ourselves (verify the domain via DNS: SPF/DKIM), use that address as sender, wire real sending (keys only in secure settings). SMS sender name still to be answered.

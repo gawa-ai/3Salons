@@ -21,6 +21,8 @@ PASS  O6 owner creates a one-time staff invitation code
 PASS  O7 code is not stored in plain text
 PASS  O9 owner settings has a Deposits panel with an amount per service
 PASS  O10 payment details are saved from Studio (stored in the database, not in code)
+PASS  O11a each artist has an optional own-account box in Settings
+PASS  O11b an artist's own account is saved from Studio
 PASS  O8 sign-out removes the stored session
 PASS  S1 staff has no All professionals selector
 PASS  S2 staff has no owner administration links
@@ -37,4 +39,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-38 checks passed
+40 checks passed
