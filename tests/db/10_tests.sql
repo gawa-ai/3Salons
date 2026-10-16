@@ -448,6 +448,7 @@ reset role;
 \i ../../supabase/migrations/20261015030000_artist_payment_details.sql
 \i ../../supabase/migrations/20261016040000_wording_notes_labels.sql
 \i ../../supabase/migrations/20261016050000_group_bookings.sql
+\i ../../supabase/migrations/20261016060000_phone_after_confirmation.sql
 select pg_temp.check((select count(*) from app.services where category in ('hair','hijab') and price_kind <> 'enquire' and deposit_pence <> 1000) = 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal')) > 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal') and deposit_pence <> 0) = 0,
@@ -555,11 +556,11 @@ select pg_temp.check(not exists (select 1 from app.audit_log where detail::text 
 update app.salons set private_phone = '+44 7700 900000';
 select pg_temp.check((select app.message_body('confirmed', sa, pr, k, cl) like '%Questions? Call +44 7700 900000.%'
                         and app.message_body('deposit_received', sa, pr, k, cl) like '%Questions? Call +44 7700 900000.%'
-                        and app.message_body('deposit_request', sa, pr, k, cl) like E'%\nMakeup Artist\n%\n+44 7700 900000'
+                        and app.message_body('deposit_request', sa, pr, k, cl) not like '%900000%'
                         and app.message_body('request_received', sa, pr, k, cl) not like '%900000%'
                         from app.bookings k join app.salons sa on sa.id = k.salon_id join app.professionals pr on pr.id = k.professional_id
                         join app.clients cl on cl.id = k.client_id where k.id = :'dk1_id'),
-  'D17 the private number goes in confirmed, deposit-request and deposit-received texts, never in the provisional request text');
+  'D17 the private number goes only in confirmed and deposit-received texts, never before confirmation (request or deposit request)');
 set role anon; select pg_temp.login(null);
 select public.salon_public_profile('shahina-ahmed')::text as prof_txt \gset
 select public.salon_public_manage(:'dk1_token') as mg2 \gset
