@@ -446,6 +446,7 @@ reset role;
 \i ../../supabase/migrations/20261014120000_deposit_flow.sql
 \i ../../supabase/migrations/20261015010000_deposit_message_format.sql
 \i ../../supabase/migrations/20261015030000_artist_payment_details.sql
+\i ../../supabase/migrations/20261016040000_wording_notes_labels.sql
 select pg_temp.check((select count(*) from app.services where category in ('hair','hijab') and price_kind <> 'enquire' and deposit_pence <> 1000) = 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal')) > 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal') and deposit_pence <> 0) = 0,
@@ -640,4 +641,24 @@ reset role;
 select pg_temp.check((:'abad'::jsonb) ? 'err' and (select count(*) from app.professional_payment_details) = 0
   and (select app.deposit_payment_text(sa, :'p_sofia') like 'Pay to: Test Bank%' from app.salons sa),
   'D28 unknown artists are refused, and a blank entry removes the artist account (studio details apply again)', :'abad'::jsonb);
+
+-- ---- Round 6: wording, notes, labels
+update app.bookings set customer_note = 'Bride, long hair, please bring extensions' where manage_token_hash = app.hash_token(:'e1_token');
+set role anon; select pg_temp.login(null);
+select public.salon_public_manage(:'e1_token') as n1 \gset
+reset role;
+select pg_temp.check((:'n1'::jsonb)#>>'{booking,customer_note}' = 'Bride, long hair, please bring extensions',
+  'D29 the client''s own note is shown on her private booking page', :'n1'::jsonb);
+select pg_temp.check((select app.message_body('request_received', sa, p, k, c) like '% at the Studio%'
+                        and app.message_body('request_received', sa, p, k, c) not like '% at ' || sa.name || '%'
+                        and app.message_body('deposit_received', sa, p, k, c) like '% at the Studio%'
+                        and app.message_body('deposit_received', sa, p, k, c) not like '% at ' || sa.name || '%'
+                        and app.message_body('confirmed', sa, p, k, c) like '% at the Studio%'
+                      from app.salons sa, app.bookings k
+                      join app.professionals p on p.id = k.professional_id join app.clients c on c.id = k.client_id
+                      where k.manage_token_hash = app.hash_token(:'e1_token')),
+  'D30 client messages say "the Studio" instead of the owner''s name');
+select pg_temp.check((select specialty from app.professionals where slug = 'shahina-ahmed') = 'Hair and Makeup Artist / Makeup Training'
+                 and (select specialty from app.professionals where slug = 'sofia-mua') = 'Hair and Makeup Artist / Saree Stylist',
+  'D31 Shahina and Sofia labels match the client''s wording');
 \echo ALL_TESTS_PASSED

@@ -7,6 +7,7 @@ PASS  P3d Escape closes the photo viewer
 PASS  P4 service tabs switch artist
 PASS  P5 booking request accepted with a reference
 PASS  P6 confirmation shows "Awaiting confirmation" (provisional)
+PASS  P6b confirmation page shows the client's own note
 PASS  P7 booking persisted as pending in the database
 PASS  P8 same slot cannot be booked twice
 PASS  P9 booking for Shirin created
@@ -42,4 +43,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-43 checks passed
+44 checks passed

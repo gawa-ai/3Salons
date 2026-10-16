@@ -94,6 +94,7 @@ async function main() {
     const ref = (await page.locator('.review .ref').textContent()).trim();
     check(/^[A-Z2-9]{6}$/.test(ref), 'P5 booking request accepted with a reference', ref);
     check(await page.locator('.badge-pending').isVisible(), 'P6 confirmation shows "Awaiting confirmation" (provisional)');
+    check(await page.locator('.review:has-text("Soft glam for a mehndi")').isVisible(), 'P6b confirmation page shows the client\'s own note');
     await shot(page, 'desktop-book-6-done', false);
     const manageHref = await page.locator('a:has-text("Open my booking")').getAttribute('href');
     check(sql(`select status from app.bookings where ref = '${ref}'`) === 'pending', 'P7 booking persisted as pending in the database');
