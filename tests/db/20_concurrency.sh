@@ -19,7 +19,7 @@ SQL
 }
 race 1111 > /tmp/race1.out & race 2222 > /tmp/race2.out & wait
 R1=$(head -1 /tmp/race1.out); R2=$(head -1 /tmp/race2.out)
-N=$($PSQL -c "select count(*) from app.bookings k join app.professionals p on p.id = k.professional_id where p.slug='shirin-jal' and k.status in ('pending','confirmed') and (k.starts_at at time zone 'Europe/London')::date = '$D'")
+N=$($PSQL -c "select count(*) from app.bookings k join app.professionals p on p.id = k.professional_id join app.clients c on c.id = k.client_id where p.slug='shirin-jal' and c.name like 'Racer %' and k.status in ('pending','confirmed') and (k.starts_at at time zone 'Europe/London')::date = '$D'")
 OUTCOME="${R1:-ok}/${R2:-ok}"
 if [ "$N" = "1" ] && { [ "$OUTCOME" = "ok/slot_taken" ] || [ "$OUTCOME" = "slot_taken/ok" ]; }; then
   echo "PASS  112 concurrent requests for one slot: exactly one booking (results: '${R1:-ok}' / '${R2:-ok}')"

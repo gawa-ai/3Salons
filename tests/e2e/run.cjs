@@ -207,7 +207,30 @@ async function main() {
     await page.locator('textarea[name^="dep-pro-"]').first().fill('Artist own account, sort code 11-11-11, account 87654321');
     await page.click('button:has-text("Save deposit settings")');
     await page.waitForSelector('text=Deposit settings saved');
-    check(sql(`select count(*) from app.professional_payment_details where instructions like 'Artist own account%'`) === '1', "O11b an artist's own account is saved from Studio");
+    // The first save's toast can still be on screen, so wait for the database itself rather than the toast.
+    const ownAccountRows = async () => {
+      for (let i = 0; i < 50; i++) {
+        const n = sql(`select count(*) from app.professional_payment_details where instructions like 'Artist own account%'`);
+        if (n === '1') return n;
+        await page.waitForTimeout(100);
+      }
+      return sql(`select count(*) from app.professional_payment_details where instructions like 'Artist own account%'`);
+    };
+    check((await ownAccountRows()) === '1', "O11b an artist's own account is saved from Studio");
+    // New booking dialog (client feedback): a hidden Time field must really be hidden, and name/mobile must line up
+    await page.goto(BASE + '/studio/bookings');
+    await page.click('button:has-text("New booking")');
+    await page.waitForSelector('input[name=phone]');
+    await page.waitForSelector('select[name=svc]');
+    await page.waitForTimeout(300);
+    check(!(await page.locator('input[name=time]').isVisible()), 'O12a Time field is hidden until "Allow a time outside working hours" is ticked');
+    const nameBox = await page.locator('input[name=name]').boundingBox();
+    const phoneBox = await page.locator('input[name=phone]').boundingBox();
+    check(Math.abs(nameBox.y - phoneBox.y) <= 1 && Math.abs(nameBox.height - phoneBox.height) <= 1, 'O12b Client name and Client mobile inputs are aligned', { nameBox, phoneBox });
+    await page.check('input[name=outside]');
+    check(await page.locator('input[name=time]').isVisible(), 'O12c Time field appears when outside-hours is ticked');
+    await shot(page, 'desktop-owner-new-booking', false);
+    await page.keyboard.press('Escape');
     await page.goto(BASE + '/studio/audit');
     await page.waitForSelector('.table');
     await shot(page, 'desktop-owner-audit', false);

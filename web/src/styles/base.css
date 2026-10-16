@@ -100,7 +100,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn-ghost.btn-sm:has(> .icon:only-child), .dialog-close { padding: 0; width: 36px; }
 
 /* ---------------------------------------------------------------- forms */
-.field { display: grid; gap: 6px; margin-bottom: 16px; }
+[hidden] { display: none !important; } /* author display rules (e.g. .field grid) must not override the hidden attribute */
+.field { display: grid; align-content: start; gap: 6px; margin-bottom: 16px; }
 .field-label { font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .field-optional { font-weight: 400; color: var(--muted); }
 .field-hint { font-size: 13px; color: var(--muted); }
@@ -120,7 +121,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .check { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; font-size: 14px; }
 .check input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex: none; }
 .check-hint { display: block; color: var(--muted); font-size: 13px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
 @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
 .honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
