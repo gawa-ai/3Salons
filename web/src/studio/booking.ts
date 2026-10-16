@@ -11,7 +11,7 @@ export interface Booking {
   price_pence: number | null; price_kind: string; price_label: string; version: number; created_at: string;
   deposit_pence: number; deposit_status: 'none' | 'requested' | 'received' | 'waived'; deposit_due_at: string | null; deposit_label: string | null;
   confirmed_at: string | null; cancelled_at: string | null; status_reason: string | null;
-  client_id: string; client_name: string; client_phone: string; client_email: string | null; customer_note: string | null; internal_note: string | null;
+  client_id: string; client_name: string; client_phone: string; client_email: string | null; customer_note: string | null; internal_note: string | null; party_size?: number;
 }
 
 /** A pending booking whose deposit has been asked for reads "Awaiting deposit". */
@@ -110,6 +110,7 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
       h('dl', { class: 'kv' },
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(b.local_date)}, ${time12(b.local_time)} to ${time12(b.local_end)}` }),
         h('dt', { text: 'Service' }), h('dd', { text: `${b.service}, ${durationLabel(b.duration_min)}` }),
+        (b.party_size ?? 1) > 1 ? [h('dt', { text: 'People' }), h('dd', { text: `${b.party_size} (group booking)` })] : null,
         h('dt', { text: 'Professional' }), h('dd', null, proDot(b.professional_color), ' ', b.professional),
         h('dt', { text: 'Listed price' }), h('dd', { text: b.price_label }),
         h('dt', { text: 'Client' }), h('dd', { text: b.client_name }),
@@ -235,6 +236,9 @@ export function openNewBooking(ctx: Ctx, defaults: { date?: string; time?: strin
     : null;
   const svcWrap = h('div');
   let svcSel: HTMLSelectElement | null = null;
+  const partySel = select({ label: 'Number of people', name: 'party', value: '1', hint: 'Group bookings hold the service time for each person, one after another.',
+    options: [1, 2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: n === 1 ? '1 (single booking)' : `${n} people` })) });
+  partySel.input.addEventListener('change', () => void loadSlots());
   const fDate = field({ label: 'Date', name: 'date', type: 'date', value: defaults.date ?? todayLocal() });
   const outside = checkbox({ name: 'outside', label: 'Allow a time outside working hours', hint: 'Overlapping bookings are never allowed.' });
   const slotsEl = h('div', { class: 'slot-pick' });
@@ -266,7 +270,7 @@ export function openNewBooking(ctx: Ctx, defaults: { date?: string; time?: strin
     if (!svcSel || !fDate.input.value) { mount(slotsEl); return; }
     mount(slotsEl, spinner('Loading times'));
     try {
-      const r = await rpc<any>('salon_dash_slots', { p_salon: ctx.salonId, p_professional: proId(), p_service: svcSel.value, p_date: fDate.input.value });
+      const r = await rpc<any>('salon_dash_slots', { p_salon: ctx.salonId, p_professional: proId(), p_service: svcSel.value, p_date: fDate.input.value, p_party: Number(partySel.input.value) });
       if (!r.slots.length) { mount(slotsEl, h('p', { class: 'muted small', text: 'No free times that day within working hours. Tick the box above to choose another time.' })); chosen = ''; return; }
       if (!r.slots.some((s: any) => s.time === chosen)) chosen = '';
       mount(slotsEl, h('p', { class: 'field-label', text: 'Free times' }), h('div', { class: 'slot-grid' }, r.slots.map((s: any) => {
@@ -284,7 +288,7 @@ export function openNewBooking(ctx: Ctx, defaults: { date?: string; time?: strin
   fDate.input.addEventListener('change', () => void loadSlots());
   outside.input.addEventListener('change', () => void loadSlots());
 
-  append(d.body, proSel?.wrap ?? null, svcWrap, fDate.wrap, outside.wrap, slotsEl, fTime.wrap,
+  append(d.body, proSel?.wrap ?? null, svcWrap, partySel.wrap, fDate.wrap, outside.wrap, slotsEl, fTime.wrap,
     h('div', { class: 'form-row' }, fName.wrap, fPhone.wrap), fEmail.wrap, h('div', { class: 'form-row' }, srcSel.wrap, statusSel.wrap), fNote.wrap, err);
   const save = button('Save booking', { onClick: async () => {
     mount(err); fName.setError(null); fPhone.setError(null);
@@ -298,7 +302,7 @@ export function openNewBooking(ctx: Ctx, defaults: { date?: string; time?: strin
       await rpc('salon_dash_booking_create', { p_salon: ctx.salonId, p_payload: {
         professional_id: proId(), service_id: svcSel.value, date: fDate.input.value, time, name: fName.input.value.trim(), phone: fPhone.input.value.trim(),
         email: fEmail.input.value.trim() || null, internal_note: fNote.input.value.trim() || null, source: srcSel.input.value, status: statusSel.input.value,
-        allow_outside_hours: outside.input.checked, idempotency_key: idem,
+        allow_outside_hours: outside.input.checked, idempotency_key: idem, party_size: Number(partySel.input.value),
       } });
       toast('Booking saved');
       d.close(); onDone();

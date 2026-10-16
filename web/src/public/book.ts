@@ -1,5 +1,5 @@
 import { h, icon, mount, newIdempotencyKey } from '../lib/dom';
-import { button, linkButton, field, textarea, checkbox, spinner, errorBox, notice, setBusy, toast } from '../lib/ui';
+import { button, linkButton, field, textarea, select, checkbox, spinner, errorBox, notice, setBusy, toast } from '../lib/ui';
 import { rpc, ApiError } from '../lib/supabase';
 import { SALON_SLUG } from '../config';
 import { addDays, formatDateLong, formatMonthYear, weekdayOf, durationLabel, minutesOf } from '../lib/format';
@@ -13,6 +13,7 @@ interface State {
   time: string | null;
   timeLabel: string | null;
   name: string; phone: string; email: string; note: string; marketing: boolean; policy: boolean;
+  party: number;
   idem: string;
   step: 1 | 2 | 3 | 4 | 5;
   month: string; // YYYY-MM-01 shown in the calendar
@@ -36,7 +37,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
   const st: State = {
     pro: null, service: null, date: null, time: null, timeLabel: null,
     name: '', phone: '', email: '', note: '', marketing: false, policy: false,
-    idem: newIdempotencyKey(), step: 1, month: today.slice(0, 8) + '01', flash: null,
+    party: 1, idem: newIdempotencyKey(), step: 1, month: today.slice(0, 8) + '01', flash: null,
   };
   const qp = query.get('artist');
   if (qp) st.pro = bookable.find((p) => p.slug === qp) ?? null;
@@ -87,7 +88,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     const rows: Node[] = [];
     if (st.pro) rows.push(h('div', { class: 'sum-pro' }, proMark(st.pro, 'sm'), h('div', null, h('p', { class: 'sum-strong', text: st.pro.display_name }), st.pro.specialty ? h('p', { class: 'muted small', text: st.pro.specialty }) : null)));
     if (st.service) rows.push(h('div', { class: 'sum-row' }, h('span', { text: st.service.name }), h('span', { class: 'sum-strong', text: st.service.price_label })),
-      h('p', { class: 'muted small', text: durationLabel(st.service.duration_min) }));
+      h('p', { class: 'muted small', text: durationLabel(st.service.duration_min * st.party) + (st.party > 1 ? ` for ${st.party} people` : '') }));
     if (st.date && st.time) rows.push(h('div', { class: 'sum-when' }, icon('calendar', 17), h('span', { text: `${formatDateLong(st.date)}, ${st.timeLabel}` })));
     mount(summary, h('div', { class: 'sum-card' },
       h('p', { class: 'sum-title', text: 'Your booking' }),
@@ -125,10 +126,19 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
 
   // -------------------------------------------------------------- step 3
   const slotsCache = new Map<string, { time: string; label: string }[]>();
+  const cacheKey = (date: string) => `${st.pro?.id}:${st.service?.id}:${st.party}:${date}`;
   function stepWhen() {
     const cal = h('div', { class: 'cal' });
     const slotsEl = h('div', { class: 'slots', attrs: { 'aria-live': 'polite' } });
+    const partySel = select({ label: 'How many people is this booking for?', name: 'party', value: String(st.party),
+      options: [1, 2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: n === 1 ? 'Just me' : `${n} people (${durationLabel(st.service!.duration_min * n)})` })),
+      hint: 'Groups are booked as one longer appointment with the same artist. For larger groups please send an enquiry.' });
+    partySel.input.addEventListener('change', () => {
+      st.party = Number(partySel.input.value); st.date = null; st.time = null; st.timeLabel = null; st.idem = newIdempotencyKey();
+      renderSummary(); mount(slotsEl, h('p', { class: 'muted slots-hint', text: 'Choose a highlighted day to see free times.' })); void renderCalendar(cal, slotsEl);
+    });
     const wrap = [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Pick a date and time' }),
+      st.service!.price_kind === 'enquire' ? null : partySel.wrap,
       st.flash ? notice('warn', st.flash) : null,
       h('div', { class: 'when-grid' }, cal, slotsEl),
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => go(2) }))];
@@ -153,7 +163,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     let days: { date: string; slots: number }[] = [];
     try {
       const from = first < today ? today : first;
-      const r = await rpc<any>('salon_public_days', { p_salon: SALON_SLUG, p_professional: st.pro!.slug, p_service: st.service!.id, p_from: from, p_days: 42 }, { anon: true });
+      const r = await rpc<any>('salon_public_days', { p_salon: SALON_SLUG, p_professional: st.pro!.slug, p_service: st.service!.id, p_from: from, p_days: 42, p_party: st.party }, { anon: true });
       if (!r.ok) throw new ApiError(r.error, r.message);
       days = r.days;
     } catch (e) {
@@ -183,13 +193,13 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
 
   async function renderSlots(el: HTMLElement, date: string, force = false) {
     mount(el, h('p', { class: 'slots-date', text: formatDateLong(date) }), spinner('Loading times'));
-    let slots = force ? undefined : slotsCache.get(date);
+    let slots = force ? undefined : slotsCache.get(cacheKey(date));
     if (!slots) {
       try {
-        const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: st.pro!.slug, p_service: st.service!.id, p_date: date }, { anon: true });
+        const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: st.pro!.slug, p_service: st.service!.id, p_date: date, p_party: st.party }, { anon: true });
         if (!r.ok) throw new ApiError(r.error, r.message);
         slots = r.slots as { time: string; label: string }[];
-        slotsCache.set(date, slots);
+        slotsCache.set(cacheKey(date), slots);
       } catch (e) {
         mount(el, errorBox((e as Error).message, () => renderSlots(el, date, true)));
         return;
@@ -254,13 +264,13 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       setBusy(submit, true, 'Sending…');
       try {
         const r = await rpc<any>('salon_public_book', { p_salon: SALON_SLUG, p_payload: {
-          professional: p.slug, service: s.id, date: st.date, time: st.time, name: st.name, phone: st.phone, email: st.email || null,
+          professional: p.slug, service: s.id, party_size: st.party, date: st.date, time: st.time, name: st.name, phone: st.phone, email: st.email || null,
           note: st.note || null, marketing_consent: st.marketing, policy_accepted: st.policy, idempotency_key: st.idem, company: (st as any).company || '',
         } }, { anon: true });
         if (!r.ok) {
           setBusy(submit, false);
           if (r.error === 'slot_taken' || r.error === 'slot_unavailable') {
-            slotsCache.delete(st.date!); st.time = null; st.idem = newIdempotencyKey();
+            slotsCache.delete(cacheKey(st.date!)); st.time = null; st.idem = newIdempotencyKey();
             st.flash = r.message; go(3); return;
           }
           if (['name_required', 'phone_required', 'email_invalid'].includes(r.error)) { go(4); toast(r.message, 'error'); return; }
@@ -277,9 +287,10 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     return [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Check and send' }),
       h('dl', { class: 'review' },
         h('dt', { text: 'Artist' }), h('dd', { text: p.display_name }),
-        h('dt', { text: 'Service' }), h('dd', { text: `${s.name}, ${durationLabel(s.duration_min)}` }),
+        h('dt', { text: 'Service' }), h('dd', { text: `${s.name}, ${durationLabel(s.duration_min * st.party)}` }),
+        st.party > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(st.party) })] : null,
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(st.date!)} at ${st.timeLabel} (UK time)` }),
-        h('dt', { text: 'Price' }), h('dd', { text: s.price_label }),
+        h('dt', { text: 'Price' }), h('dd', { text: st.party > 1 && s.price_kind !== 'enquire' ? `${s.price_label} each, ${st.party} people` : s.price_label }),
         h('dt', { text: 'Name' }), h('dd', { text: st.name }),
         h('dt', { text: 'Mobile' }), h('dd', { text: st.phone }),
         st.email ? [h('dt', { text: 'Email' }), h('dd', { text: st.email })] : null,
@@ -306,6 +317,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         h('dt', { text: 'Status' }), h('dd', null, h('span', { class: 'badge badge-pending', text: 'Awaiting confirmation' })),
         h('dt', { text: 'Artist' }), h('dd', { text: r.professional }),
         h('dt', { text: 'Service' }), h('dd', { text: `${r.service}, ${r.price_label}` }),
+        r.party_size > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(r.party_size) })] : null,
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(r.date)} at ${st.timeLabel} (UK time)` }),
         st.note ? [h('dt', { text: 'Your note' }), h('dd', { text: st.note })] : null),
       h('div', { class: 'manage-box' },

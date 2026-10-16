@@ -5,6 +5,7 @@ PASS  P3b contact block says bookings are by appointment only
 PASS  P3c clicking a gallery photo opens it larger
 PASS  P3d Escape closes the photo viewer
 PASS  P4 service tabs switch artist
+PASS  P3b group of 2 shows fewer, longer slots and says "for 2 people"
 PASS  P5 booking request accepted with a reference
 PASS  P6 confirmation shows "Awaiting confirmation" (provisional)
 PASS  P6b confirmation page shows the client's own note
@@ -26,6 +27,7 @@ PASS  O11a each artist has an optional own-account box in Settings
 PASS  O11b an artist's own account is saved from Studio
 PASS  O12a Time field is hidden until "Allow a time outside working hours" is ticked
 PASS  O12b Client name and Client mobile inputs are aligned
+PASS  O12d New booking dialog has a Number of people selector
 PASS  O12c Time field appears when outside-hours is ticked
 PASS  O8 sign-out removes the stored session
 PASS  S1 staff has no All professionals selector
@@ -43,4 +45,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-44 checks passed
+46 checks passed

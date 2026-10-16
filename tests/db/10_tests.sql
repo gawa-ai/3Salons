@@ -447,6 +447,7 @@ reset role;
 \i ../../supabase/migrations/20261015010000_deposit_message_format.sql
 \i ../../supabase/migrations/20261015030000_artist_payment_details.sql
 \i ../../supabase/migrations/20261016040000_wording_notes_labels.sql
+\i ../../supabase/migrations/20261016050000_group_bookings.sql
 select pg_temp.check((select count(*) from app.services where category in ('hair','hijab') and price_kind <> 'enquire' and deposit_pence <> 1000) = 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal')) > 0
   and (select count(*) from app.services where category in ('makeup','saree','bridal') and deposit_pence <> 0) = 0,
@@ -661,4 +662,26 @@ select pg_temp.check((select app.message_body('request_received', sa, p, k, c) l
 select pg_temp.check((select specialty from app.professionals where slug = 'shahina-ahmed') = 'Hair and Makeup Artist / Makeup Training'
                  and (select specialty from app.professionals where slug = 'sofia-mua') = 'Hair and Makeup Artist / Saree Stylist',
   'D31 Shahina and Sofia labels match the client''s wording');
+
+-- ---- Round 7: group bookings (party size multiplies the time with one artist)
+set role anon; select pg_temp.login(null);
+select (x->>'date') as gdate from jsonb_array_elements((public.salon_public_days('shahina-ahmed','sofia-mua',:'s_sofia_makeup', null, 42, 2))->'days') x order by 1 desc limit 1 \gset
+select public.salon_public_slots('shahina-ahmed','sofia-mua',:'s_sofia_makeup',:'gdate') as g1 \gset
+select public.salon_public_slots('shahina-ahmed','sofia-mua',:'s_sofia_makeup',:'gdate', 2) as g2 \gset
+select pg_temp.check(((:'g2'::jsonb)->>'duration_min')::int = 2 * ((:'g1'::jsonb)->>'duration_min')::int
+  and jsonb_array_length((:'g2'::jsonb)->'slots') < jsonb_array_length((:'g1'::jsonb)->'slots'),
+  'D32 two people need twice the time: 120 min and fewer start times', jsonb_build_object('one', :'g1'::jsonb, 'two', :'g2'::jsonb));
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'gdate','time','10:00','party_size','2','name','Bride Group','phone','07700 900333','idempotency_key','idem-group-000000001')) as gb \gset
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'gdate','time','11:30','name','Late Single','phone','07700 900444','idempotency_key','idem-group-000000002')) as gb2 \gset
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup',
+  'date',:'gdate','time','14:00','party_size','7','name','Too Many','phone','07700 900555','idempotency_key','idem-group-000000003')) as gb3 \gset
+reset role;
+select pg_temp.check((:'gb'::jsonb)->>'ok' = 'true' and (:'gb'::jsonb)->>'party_size' = '2'
+  and (:'gb'::jsonb)->>'price_label' = '£' || (2 * (select (price_pence/100) from app.services where id = :'s_sofia_makeup'))::text
+  and (select ends_at - starts_at = make_interval(mins => 2 * (select duration_min from app.services where id = :'s_sofia_makeup')) and party_size = 2 from app.bookings where ref = (:'gb'::jsonb)->>'ref'),
+  'D33 group booking holds 2x the time, 2x the price and stores the party size', :'gb'::jsonb);
+select pg_temp.check((:'gb2'::jsonb)->>'error' = 'slot_taken', 'D34 a single booking inside the group''s extra time is refused', :'gb2'::jsonb);
+select pg_temp.check((:'gb3'::jsonb)->>'error' = 'party_invalid', 'D35 more than 6 people is refused (use an enquiry)', :'gb3'::jsonb);
 \echo ALL_TESTS_PASSED

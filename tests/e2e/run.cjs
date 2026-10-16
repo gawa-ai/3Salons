@@ -78,6 +78,19 @@ async function main() {
     await page.locator('.cal-day.has-slots').nth(3).click();
     await page.waitForSelector('.slot');
     await shot(page, 'desktop-book-3-time', false);
+    const n1 = await page.locator('.slot').count();
+    await page.selectOption('select[name=party]', '2');
+    await page.waitForTimeout(400);
+    await page.waitForSelector('.cal-day.has-slots');
+    await page.locator('.cal-day.has-slots').nth(3).click();
+    await page.waitForSelector('.slot');
+    const n2 = await page.locator('.slot').count();
+    check(n2 > 0 && n2 < n1 && /for 2 people/.test(await page.locator('.sum-card').textContent()), 'P3c group of 2 shows fewer, longer slots and says "for 2 people"', { n1, n2 });
+    await page.selectOption('select[name=party]', '1');
+    await page.waitForTimeout(400);
+    await page.waitForSelector('.cal-day.has-slots');
+    await page.locator('.cal-day.has-slots').nth(3).click();
+    await page.waitForSelector('.slot');
     const slotLabel = (await page.locator('.slot').first().textContent()).trim();
     await page.locator('.slot').first().click();
     await page.waitForSelector('input[name=name]');
@@ -228,6 +241,7 @@ async function main() {
     const nameBox = await page.locator('input[name=name]').boundingBox();
     const phoneBox = await page.locator('input[name=phone]').boundingBox();
     check(Math.abs(nameBox.y - phoneBox.y) <= 1 && Math.abs(nameBox.height - phoneBox.height) <= 1, 'O12b Client name and Client mobile inputs are aligned', { nameBox, phoneBox });
+    check(await page.locator('select[name=party]').isVisible(), 'O12d New booking dialog has a Number of people selector');
     await page.check('input[name=outside]');
     check(await page.locator('input[name=time]').isVisible(), 'O12c Time field appears when outside-hours is ticked');
     await shot(page, 'desktop-owner-new-booking', false);
