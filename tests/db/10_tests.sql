@@ -765,4 +765,50 @@ select pg_temp.check(:c5 = 1 and (select status = 'queued' and attempts = 1 and 
   'S15 once connected, the customer text is claimed');
 update app.salons set sms_connected = false where id = :'salon';
 delete from app.notifications where dedupe_key in ('sms-test-real-1', 'sms-test-test-1');
+
+-- =====================================================================
+-- Round 9: several artists at the same time in one booking (all-or-nothing)
+-- =====================================================================
+reset role;
+\i ../../supabase/migrations/20261020140000_multi_artist_booking.sql
+set role anon; select pg_temp.login(null);
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object(
+  'items', jsonb_build_array(jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+                             jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair')),
+  'date',:'gdate','time','13:00','name','Mother Daughter','phone','07700 900666','idempotency_key','idem-multi-0000000001')) as m1 \gset
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object(
+  'items', jsonb_build_array(jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+                             jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair')),
+  'date',:'gdate','time','13:00','name','Mother Daughter','phone','07700 900666','idempotency_key','idem-multi-0000000001')) as m2 \gset
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object(
+  'items', jsonb_build_array(jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+                             jsonb_build_object('professional','sofia-mua','service',:'s_sofia_saree')),
+  'date',:'gdate','time','15:00','name','Same Artist','phone','07700 900777','idempotency_key','idem-multi-0000000002')) as m3 \gset
+-- 10:30 is inside the earlier group booking with Sofia (10:00-12:00): Shirin is free but nothing may be booked
+reset role;
+select count(*) as before_n from app.bookings \gset
+set role anon; select pg_temp.login(null);
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object(
+  'items', jsonb_build_array(jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair'),
+                             jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup')),
+  'date',:'gdate','time','10:30','name','All Or Nothing','phone','07700 900888','idempotency_key','idem-multi-0000000003')) as m4 \gset
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object(
+  'items', jsonb_build_array(jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup')),
+  'date',:'gdate','time','16:00','name','Only One','phone','07700 900999','idempotency_key','idem-multi-0000000004')) as m5 \gset
+reset role;
+select pg_temp.check((:'m1'::jsonb)->>'ok' = 'true' and jsonb_array_length((:'m1'::jsonb)->'bookings') = 2
+  and (:'m1'::jsonb)#>>'{bookings,0,manage_token}' is not null and (:'m1'::jsonb)#>>'{bookings,1,manage_token}' is not null
+  and (:'m1'::jsonb)#>>'{bookings,0,professional}' <> (:'m1'::jsonb)#>>'{bookings,1,professional}',
+  'M1 two artists booked at the same time, each booking has its own private link', :'m1'::jsonb);
+select pg_temp.check((select count(*) = 2 and count(distinct professional_id) = 2 and count(distinct group_id) = 1 and count(distinct starts_at) = 1
+                        and bool_and(status = 'pending') and bool_and(internal_note like 'Booked together at the same time with:%')
+                      from app.bookings where ref in ((:'m1'::jsonb)#>>'{bookings,0,ref}', (:'m1'::jsonb)#>>'{bookings,1,ref}')),
+  'M2 both bookings pending, same start, linked by one group, artists see who else is booked');
+select pg_temp.check((:'m2'::jsonb)->>'ok' = 'true' and (select count(*) from app.bookings where group_id is not null) = 2
+  and (select count(*) = 2 from app.bookings where group_id is not null and length(internal_note) - length(replace(internal_note, 'Booked together', '')) = length('Booked together')),
+  'M3 retrying the same request does not double book or duplicate the note', :'m2'::jsonb);
+select pg_temp.check((:'m3'::jsonb)->>'error' = 'same_artist', 'M4 the same artist twice is refused (use "people" instead)', :'m3'::jsonb);
+select pg_temp.check((:'m4'::jsonb)->>'error' = 'slot_taken' and (select count(*) from app.bookings) = :before_n,
+  'M5 all or nothing: if one artist is busy nothing is booked for the others', :'m4'::jsonb);
+select pg_temp.check((:'m5'::jsonb)->>'error' = 'invalid_request', 'M6 a single item is not a multi booking', :'m5'::jsonb);
 \echo ALL_TESTS_PASSED

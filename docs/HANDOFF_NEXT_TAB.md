@@ -62,3 +62,6 @@ Huling update: 2026-10-14. Basahin muna ito, tapos `docs/BUILD_STATE.md` ("Round
 - Website is behind a "Coming soon" gate (netlify.toml block `COMING SOON GATE`). Studio is also unreachable until the gate is removed.
 - Details and test counts: see BUILD_STATE "Round 8".
 - Remaining before go-live: (1) JG applies the toggles migration; (2) Mohsin OKs "Shahina" sender; (3) JG OK + run `supabase/ops/go_live_cleanup.sql` (check the 2 upcoming bookings first); (4) real emails for the 4 artist logins instead of @sample.com and new passwords (not 123456); (5) regenerate the SMS Works token (it was pasted in chat) and update the Supabase secret; (6) set `sms_connected = true`; (7) set booking_mode = live and remove the gate; (8) decide reminders (not built) and Stripe (optional phase 2).
+
+## UPDATE 2026-10-20 (Round 9)
+Multi-artist booking built and tested; apply `supabase/migrations/20261020140000_multi_artist_booking.sql` live, then test on the site. See BUILD_STATE Round 9.

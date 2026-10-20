@@ -98,3 +98,10 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Site gate: `netlify.toml` has a temporary "COMING SOON GATE" block (forced rewrites to `web/public/coming-soon.html`). Delete that block to go live.
 - Go-live data cleanup: `supabase/ops/go_live_cleanup.sql` (backs up to schema `backup_golive`, then clears test bookings, clients, enquiries, notifications, audit log; tested locally including restore). NOT run. Live counts at 2026-10-20: 19 bookings (2 upcoming active), 16 clients, 2 enquiries. Needs JG's explicit OK; check the 2 upcoming bookings are not real first.
 - Customer manage page: can cancel, cannot reschedule (the client contacts the studio, who moves it in Studio). Payments stay bank transfer; Stripe only if the client asks (phase 2).
+
+## Round 9 (2026-10-20)
+- Live: site opened (gate removed), SMS live, test data cleaned (backup in `backup_golive`).
+- Email field removed from booking and enquiry forms. Artist boxes equal size.
+- Multi-artist same-time booking: migration `20261020140000_multi_artist_booking.sql` (`salon_public_book_multi`, `bookings.group_id`), 2-3 artists, all-or-nothing, one private link each. UI: "Add another artist at the same time" on the Review step; done page shows one card per booking. DB tests M1-M6, e2e M-UI1..3 (50 e2e checks pass).
+- Migration must be applied live (paste in Supabase SQL editor).
+- Not built: reminders, SEO (needs address/phone), PWA, owner delete booking, Stripe/Apple Pay.

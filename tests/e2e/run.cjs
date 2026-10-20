@@ -137,6 +137,30 @@ async function main() {
     check(await page.locator('text=has not confirmed this booking yet').isVisible(), 'P10 private manage link shows provisional status');
     await shot(page, 'desktop-manage', false);
 
+    // two artists at the same time
+    await page.goto(BASE + '/book');
+    await page.click('.choice-pro:has-text("Sofia Musa")');
+    await page.click('.choice-service:has-text("Party Makeup")');
+    await page.waitForSelector('.cal-day.has-slots');
+    await page.locator('.cal-day.has-slots').nth(5).click();
+    await page.waitForSelector('.slot');
+    await page.locator('.slot').first().click();
+    await page.waitForSelector('input[name=name]');
+    await page.fill('input[name=name]', 'Layla Duo');
+    await page.fill('input[name=phone]', '07700 900444');
+    await page.click('button:has-text("Review booking")');
+    await page.waitForSelector('text=Check and send');
+    await page.click('button:has-text("Add another artist at the same time")');
+    await page.selectOption('select[name=extra-artist]', { label: 'Shirin Jal' }).catch(async () => { await page.selectOption('select[name=extra-artist]', { index: 0 }); });
+    await page.click('button:has-text("Add to my booking")');
+    await page.waitForSelector('text=Also at', { timeout: 8000 });
+    check(true, 'M-UI1 second artist added at the same time on the review step');
+    await page.click('button:has-text("Send booking request")');
+    await page.waitForSelector('text=Your requests have been sent');
+    check((await page.locator('.done-one').count()) === 2 && (await page.locator('a:has-text("Open my booking")').count()) === 2, 'M-UI2 two bookings, each with its own reference and private link');
+    check(sql(`select count(*)||'|'||count(distinct b.group_id) from app.bookings b join app.clients c on c.id=b.client_id where c.name='Layla Duo'`) === '2|1', 'M-UI3 both bookings saved and linked as one group');
+    sql(`delete from app.bookings where client_id in (select id from app.clients where name='Layla Duo')`);
+
     await page.goto(BASE + '/bridal?artist=shirin-jal');
     await page.waitForSelector('form.enquiry-form');
     await page.fill('input[name=name]', 'Hana Bride');

@@ -5,7 +5,8 @@ PASS  P3b contact block says bookings are by appointment only
 PASS  P3c clicking a gallery photo opens it larger
 PASS  P3d Escape closes the photo viewer
 PASS  P4 service tabs switch artist
-PASS  P3b group of 2 shows fewer, longer slots and says "for 2 people"
+PASS  P3c group of 2 shows fewer, longer slots and says "for 2 people"
+PASS  P4b booking form has no email field
 PASS  P5 booking request accepted with a reference
 PASS  P6 confirmation shows "Awaiting confirmation" (provisional)
 PASS  P6b confirmation page shows the client's own note
@@ -13,6 +14,9 @@ PASS  P7 booking persisted as pending in the database
 PASS  P8 same slot cannot be booked twice
 PASS  P9 booking for Shirin created
 PASS  P10 private manage link shows provisional status
+PASS  M-UI1 second artist added at the same time on the review step
+PASS  M-UI2 two bookings, each with its own reference and private link
+PASS  M-UI3 both bookings saved and linked as one group
 PASS  P11 bridal enquiry sent
 PASS  O1 signed-out visitor is redirected away from the studio
 PASS  O2 owner sees the All professionals selector
@@ -45,4 +49,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-46 checks passed
+50 checks passed

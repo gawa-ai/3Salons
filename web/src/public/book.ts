@@ -14,6 +14,7 @@ interface State {
   timeLabel: string | null;
   name: string; phone: string; email: string; note: string; marketing: boolean; policy: boolean;
   party: number;
+  extra: { pro: PublicPro; service: PublicService }[];
   idem: string;
   step: 1 | 2 | 3 | 4 | 5;
   month: string; // YYYY-MM-01 shown in the calendar
@@ -37,7 +38,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
   const st: State = {
     pro: null, service: null, date: null, time: null, timeLabel: null,
     name: '', phone: '', email: '', note: '', marketing: false, policy: false,
-    party: 1, idem: newIdempotencyKey(), step: 1, month: today.slice(0, 8) + '01', flash: null,
+    party: 1, extra: [], idem: newIdempotencyKey(), step: 1, month: today.slice(0, 8) + '01', flash: null,
   };
   const qp = query.get('artist');
   if (qp) st.pro = bookable.find((p) => p.slug === qp) ?? null;
@@ -89,6 +90,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     if (st.pro) rows.push(h('div', { class: 'sum-pro' }, proMark(st.pro, 'sm'), h('div', null, h('p', { class: 'sum-strong', text: st.pro.display_name }), st.pro.specialty ? h('p', { class: 'muted small', text: st.pro.specialty }) : null)));
     if (st.service) rows.push(h('div', { class: 'sum-row' }, h('span', { text: st.service.name }), h('span', { class: 'sum-strong', text: st.service.price_label })),
       h('p', { class: 'muted small', text: durationLabel(st.service.duration_min * st.party) + (st.party > 1 ? ` for ${st.party} people` : '') }));
+    st.extra.forEach((x) => rows.push(h('div', { class: 'sum-row' }, h('span', { text: `${x.service.name} with ${x.pro.short_name}` }), h('span', { class: 'sum-strong', text: x.service.price_label }))));
     if (st.date && st.time) rows.push(h('div', { class: 'sum-when' }, icon('calendar', 17), h('span', { text: `${formatDateLong(st.date)}, ${st.timeLabel}` })));
     mount(summary, h('div', { class: 'sum-card' },
       h('p', { class: 'sum-title', text: 'Your booking' }),
@@ -101,7 +103,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     return [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Who would you like to book?' }),
       bookable.length ? h('ul', { class: 'choice-grid' }, bookable.map((p) => h('li', null,
         h('button', { class: ['choice', 'choice-pro', `pro-${p.color}`, st.pro?.id === p.id && 'selected'], attrs: { type: 'button', 'aria-pressed': String(st.pro?.id === p.id) },
-          on: { click: () => { if (st.pro?.id !== p.id) { st.pro = p; st.service = null; st.date = null; st.time = null; st.idem = newIdempotencyKey(); } syncUrl(); go(2); } } },
+          on: { click: () => { if (st.pro?.id !== p.id) { st.pro = p; st.service = null; st.date = null; st.time = null; st.extra = []; st.idem = newIdempotencyKey(); } syncUrl(); go(2); } } },
           proMark(p, 'sm'),
           h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: p.display_name }), p.specialty ? h('span', { class: 'choice-sub', text: p.specialty }) : null),
           icon('chevronRight', 18)))))
@@ -117,7 +119,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     return [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: `Choose a service with ${p.short_name}` }),
       h('ul', { class: 'choice-list' }, online.map((s) => h('li', null,
         h('button', { class: ['choice', 'choice-service', st.service?.id === s.id && 'selected'], attrs: { type: 'button', 'aria-pressed': String(st.service?.id === s.id) },
-          on: { click: () => { if (st.service?.id !== s.id) { st.service = s; st.date = null; st.time = null; st.idem = newIdempotencyKey(); } syncUrl(); go(3); } } },
+          on: { click: () => { if (st.service?.id !== s.id) { st.service = s; st.date = null; st.time = null; st.extra = []; st.idem = newIdempotencyKey(); } syncUrl(); go(3); } } },
           h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `${durationLabel(s.duration_min)}${s.description ? '. ' + s.description : ''}` })),
           h('span', { class: 'choice-price', text: s.price_label }))))),
       enquire.length ? h('div', { class: 'enquire-box' }, icon('heart', 18), h('p', null, `${enquire.map((s) => s.name).join(', ')} ${enquire.length > 1 ? 'are' : 'is'} by enquiry. `, h('a', { attrs: { href: `/bridal?artist=${p.slug}` }, text: 'Send an enquiry' }))) : null,
@@ -134,7 +136,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       options: [1, 2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: n === 1 ? 'Just me' : `${n} people (${durationLabel(st.service!.duration_min * n)})` })),
       hint: 'Groups are booked as one longer appointment with the same artist. For larger groups please send an enquiry.' });
     partySel.input.addEventListener('change', () => {
-      st.party = Number(partySel.input.value); st.date = null; st.time = null; st.timeLabel = null; st.idem = newIdempotencyKey();
+      st.party = Number(partySel.input.value); st.date = null; st.time = null; st.timeLabel = null; st.extra = []; st.idem = newIdempotencyKey();
       renderSummary(); mount(slotsEl, h('p', { class: 'muted slots-hint', text: 'Choose a highlighted day to see free times.' })); void renderCalendar(cal, slotsEl);
     });
     const wrap = [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Pick a date and time' }),
@@ -183,7 +185,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       const btn = h('button', {
         class: ['cal-day', n > 0 && 'has-slots', st.date === iso && 'selected', iso === today && 'today'],
         attrs: { type: 'button', disabled: n === 0, 'aria-pressed': String(st.date === iso), 'aria-label': `${formatDateLong(iso)}${n ? `, ${n} free time${n === 1 ? '' : 's'}` : ', no free times'}` },
-        on: { click: () => { st.date = iso; st.time = null; st.idem = newIdempotencyKey(); renderSummary(); void renderCalendar(cal, slotsEl); void renderSlots(slotsEl, iso); } },
+        on: { click: () => { st.date = iso; st.time = null; st.extra = []; st.idem = newIdempotencyKey(); renderSummary(); void renderCalendar(cal, slotsEl); void renderSlots(slotsEl, iso); } },
       }, h('span', { text: String(Number(iso.slice(8))) }));
       grid.appendChild(btn);
       d = addDays(d, 1);
@@ -217,7 +219,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         h('p', { class: 'slot-group-label', text: label }),
         h('div', { class: 'slot-grid' }, g.map((s) => h('button', {
           class: ['slot', st.time === s.time && 'selected'], attrs: { type: 'button', 'aria-pressed': String(st.time === s.time) },
-          on: { click: () => { st.time = s.time; st.timeLabel = s.label; st.idem = newIdempotencyKey(); go(4); } },
+          on: { click: () => { st.time = s.time; st.timeLabel = s.label; st.extra = []; st.idem = newIdempotencyKey(); go(4); } },
           text: s.label,
         }))))));
   }
@@ -249,6 +251,44 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     return [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Your details' }), form];
   }
 
+  // -------------------------------------------------------------- add another artist at the same time
+  function addAnotherArtist(): Node | null {
+    const used = new Set([st.pro!.id, ...st.extra.map((x) => x.pro.id)]);
+    const others = bookable.filter((q) => !used.has(q.id));
+    if (!others.length || st.extra.length >= 2) return null;
+    const box = h('div', { class: 'add-artist' });
+    const open = () => {
+      const msg = h('div', { attrs: { 'aria-live': 'polite' } });
+      const artistSel = select({ label: 'Artist', name: 'extra-artist', options: others.map((q) => ({ value: q.id, label: q.display_name })) });
+      const serviceSel = select({ label: 'Service', name: 'extra-service', options: [] });
+      const fill = () => {
+        const q = others.find((o) => o.id === artistSel.input.value)!;
+        serviceSel.input.replaceChildren(...q.services.filter((x) => x.bookable_online).map((x) => h('option', { attrs: { value: x.id }, text: `${x.name} (${durationLabel(x.duration_min)}, ${x.price_label})` })));
+      };
+      artistSel.input.addEventListener('change', fill); fill();
+      const add = button('Add to my booking', { onClick: async () => {
+        mount(msg);
+        const q = others.find((o) => o.id === artistSel.input.value)!;
+        const svc = q.services.find((x) => x.id === serviceSel.input.value);
+        if (!svc) { mount(msg, notice('error', 'Please choose a service.')); return; }
+        setBusy(add, true, 'Checking…');
+        try {
+          const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: q.slug, p_service: svc.id, p_date: st.date, p_party: 1 }, { anon: true });
+          if (!r.ok) throw new ApiError(r.error, r.message);
+          const free = (r.slots as { time: string }[]).some((x) => x.time === st.time);
+          if (!free) { setBusy(add, false); mount(msg, notice('warn', `${q.display_name} is not free for ${svc.name} at ${st.timeLabel} on ${formatDateLong(st.date!)}. Please choose another service or artist, or go back and pick another time.`)); return; }
+          st.extra = [...st.extra, { pro: q, service: svc }]; st.idem = newIdempotencyKey(); render();
+        } catch (e) { setBusy(add, false); mount(msg, notice('error', (e as Error).message)); }
+      } });
+      mount(box, h('div', { class: 'add-artist-form' }, artistSel.wrap, serviceSel.wrap, msg,
+        h('div', { class: 'row-end' }, button('Cancel', { variant: 'ghost', onClick: () => mount(box, trigger()) }), add)));
+    };
+    const trigger = () => h('div', null, h('p', { class: 'muted small', text: `Want another service at the same time with a different artist, for example for a friend or family member?` }),
+      button('Add another artist at the same time', { variant: 'secondary', icon: 'plus', onClick: open }));
+    mount(box, trigger());
+    return box;
+  }
+
   // -------------------------------------------------------------- step 5
   function stepReview() {
     const p = st.pro!; const s = st.service!;
@@ -261,10 +301,13 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       st.policy = !!policy?.input.checked;
       setBusy(submit, true, 'Sending…');
       try {
-        const r = await rpc<any>('salon_public_book', { p_salon: SALON_SLUG, p_payload: {
-          professional: p.slug, service: s.id, party_size: st.party, date: st.date, time: st.time, name: st.name, phone: st.phone, email: null,
-          note: st.note || null, marketing_consent: st.marketing, policy_accepted: st.policy, idempotency_key: st.idem, company: (st as any).company || '',
-        } }, { anon: true });
+        const common = { date: st.date, time: st.time, name: st.name, phone: st.phone, email: null,
+          note: st.note || null, marketing_consent: st.marketing, policy_accepted: st.policy, idempotency_key: st.idem, company: (st as any).company || '' };
+        const r = st.extra.length
+          ? await rpc<any>('salon_public_book_multi', { p_salon: SALON_SLUG, p_payload: { ...common, items: [
+              { professional: p.slug, service: s.id, party_size: st.party },
+              ...st.extra.map((x) => ({ professional: x.pro.slug, service: x.service.id, party_size: 1 }))] } }, { anon: true })
+          : await rpc<any>('salon_public_book', { p_salon: SALON_SLUG, p_payload: { ...common, professional: p.slug, service: s.id, party_size: st.party } }, { anon: true });
         if (!r.ok) {
           setBusy(submit, false);
           if (r.error === 'slot_taken' || r.error === 'slot_unavailable') {
@@ -276,7 +319,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
           mount(err, notice('error', r.message));
           return;
         }
-        renderDone(r);
+        renderDone(r.group ? r : { ...r, group: false, bookings: [r] });
       } catch (e) {
         setBusy(submit, false);
         mount(err, notice('error', `${(e as Error).message} Your request was not confirmed yet; pressing the button again is safe and will not double book.`));
@@ -289,9 +332,13 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         st.party > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(st.party) })] : null,
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(st.date!)} at ${st.timeLabel} (UK time)` }),
         h('dt', { text: 'Price' }), h('dd', { text: st.party > 1 && s.price_kind !== 'enquire' ? `${s.price_label} each, ${st.party} people` : s.price_label }),
+        st.extra.map((x) => [h('dt', { text: `Also at ${st.timeLabel}` }),
+          h('dd', null, h('span', { text: `${x.service.name} with ${x.pro.display_name}, ${durationLabel(x.service.duration_min)}, ${x.service.price_label} ` }),
+            button('Remove', { variant: 'link', onClick: () => { st.extra = st.extra.filter((y) => y !== x); st.idem = newIdempotencyKey(); render(); } }))]),
         h('dt', { text: 'Name' }), h('dd', { text: st.name }),
         h('dt', { text: 'Mobile' }), h('dd', { text: st.phone }),
         st.note ? [h('dt', { text: 'Note' }), h('dd', { text: st.note })] : null),
+      addAnotherArtist(),
       h('p', { class: 'review-edit' }, button('Change details', { variant: 'link', onClick: () => go(4) }), button('Change time', { variant: 'link', onClick: () => go(3) })),
       notice('info', `This is a booking request. The time is held for you, and it becomes confirmed once ${p.short_name} accepts it.`),
       salon.booking_policy ? h('div', { class: 'policy' }, h('p', { class: 'policy-title', text: 'Booking policy' }), h('p', { class: 'policy-text', text: salon.booking_policy }), policy!.wrap) : null,
@@ -300,30 +347,40 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => go(4) }))];
   }
 
-  function renderDone(r: any) {
-    const link = `${location.origin}/manage#t=${encodeURIComponent(r.manage_token)}`;
+  function renderDone(res: any) {
+    const list: any[] = res.bookings;
+    const names = list.map((b) => b.professional_short);
+    const joined = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
     mount(progress);
     mount(summary);
     summary.hidden = true;
+    const one = (r: any, idx: number) => {
+      const link = `${location.origin}/manage#t=${encodeURIComponent(r.manage_token)}`;
+      return h('div', { class: 'done-one' },
+        list.length > 1 ? h('h3', { class: 'done-sub', text: `${idx + 1}. ${r.service} with ${r.professional_short}` }) : null,
+        h('dl', { class: 'review' },
+          h('dt', { text: 'Reference' }), h('dd', { class: 'ref', text: r.ref }),
+          h('dt', { text: 'Status' }), h('dd', null, h('span', { class: 'badge badge-pending', text: 'Awaiting confirmation' })),
+          h('dt', { text: 'Artist' }), h('dd', { text: r.professional }),
+          h('dt', { text: 'Service' }), h('dd', { text: `${r.service}, ${r.price_label}` }),
+          r.party_size > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(r.party_size) })] : null,
+          h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(r.date)} at ${st.timeLabel} (UK time)` }),
+          st.note ? [h('dt', { text: 'Your note' }), h('dd', { text: st.note })] : null),
+        h('div', { class: 'manage-box' },
+          h('p', { class: 'sum-strong', text: list.length > 1 ? `Private link for ${r.professional_short}'s booking` : 'Keep this private link' }),
+          h('p', { class: 'muted small', text: 'Use it to check the status of your booking or cancel it. Anyone with the link can see this booking, so do not share it.' }),
+          h('div', { class: 'manage-actions' },
+            button('Copy link', { variant: 'secondary', size: 'sm', icon: 'check', onClick: async () => { try { await navigator.clipboard.writeText(link); toast('Link copied'); } catch { toast('Copy failed. Use "Open my booking" and bookmark the page.', 'error'); } } }),
+            linkButton('Open my booking', `/manage#t=${encodeURIComponent(r.manage_token)}`, { variant: 'ghost', size: 'sm' }))));
+    };
     mount(stage, h('div', { class: 'done' },
       h('div', { class: 'done-mark', attrs: { 'aria-hidden': 'true' } }, icon('check', 26)),
-      h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: 'Your request has been sent' }),
-      h('p', { class: 'done-lede', text: `${r.professional_short} will confirm your appointment. Until then it is held for you and shows as awaiting confirmation.` }),
-      h('dl', { class: 'review' },
-        h('dt', { text: 'Reference' }), h('dd', { class: 'ref', text: r.ref }),
-        h('dt', { text: 'Status' }), h('dd', null, h('span', { class: 'badge badge-pending', text: 'Awaiting confirmation' })),
-        h('dt', { text: 'Artist' }), h('dd', { text: r.professional }),
-        h('dt', { text: 'Service' }), h('dd', { text: `${r.service}, ${r.price_label}` }),
-        r.party_size > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(r.party_size) })] : null,
-        h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(r.date)} at ${st.timeLabel} (UK time)` }),
-        st.note ? [h('dt', { text: 'Your note' }), h('dd', { text: st.note })] : null),
-      h('div', { class: 'manage-box' },
-        h('p', { class: 'sum-strong', text: 'Keep this private link' }),
-        h('p', { class: 'muted small', text: 'Use it to check the status of your booking or cancel it. Anyone with the link can see this booking, so do not share it.' }),
-        h('div', { class: 'manage-actions' },
-          button('Copy link', { variant: 'secondary', size: 'sm', icon: 'check', onClick: async () => { try { await navigator.clipboard.writeText(link); toast('Link copied'); } catch { toast('Copy failed. Use "Open my booking" and bookmark the page.', 'error'); } } }),
-          linkButton('Open my booking', `/manage#t=${encodeURIComponent(r.manage_token)}`, { variant: 'ghost', size: 'sm' }))),
-      r.preview ? notice('warn', 'Preview site: this is a test booking while the studio gets ready to launch.') : null,
+      h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: list.length > 1 ? 'Your requests have been sent' : 'Your request has been sent' }),
+      h('p', { class: 'done-lede', text: list.length > 1
+        ? `${joined} will each confirm their own appointment. Until then they are held for you and show as awaiting confirmation.`
+        : `${joined} will confirm your appointment. Until then it is held for you and shows as awaiting confirmation.` }),
+      list.map(one),
+      res.preview ? notice('warn', 'Preview site: this is a test booking while the studio gets ready to launch.') : null,
       h('p', { class: 'done-actions' }, linkButton('Back to the studio', '/', { variant: 'ghost' }))));
     stage.querySelector<HTMLElement>('h2')?.focus();
     window.scrollTo({ top: 0 });
