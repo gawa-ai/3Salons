@@ -240,6 +240,11 @@
 .choice-sub { color: var(--muted); font-size: 13px; }
 .choice-price { font-family: var(--serif); font-size: 22px; font-weight: 600; white-space: nowrap; }
 .choice-pro .pro-logo { max-width: 48px; }
+/* every artist box is the same size, and the avatar never shrinks or gets cut off */
+.choice-grid { grid-auto-rows: 1fr; }
+.choice-grid > li { display: flex; }
+.choice-grid .choice { height: 100%; min-height: 96px; }
+.choice-pro .pro-logo, .choice-pro .avatar { flex: 0 0 48px; width: 48px; height: 48px; max-width: 48px; }
 .choice .icon { color: var(--muted); }
 .enquire-box { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 14px 16px; border-radius: var(--r-md); background: var(--blush-2); font-size: 14px; }
 .enquire-box .icon { color: var(--pro-rose); margin-top: 2px; }
