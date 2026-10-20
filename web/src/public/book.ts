@@ -226,14 +226,13 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
   function stepDetails() {
     const fName = field({ label: 'Full name', name: 'name', required: true, autocomplete: 'name', value: st.name, maxlength: 80 });
     const fPhone = field({ label: 'Mobile number', name: 'phone', type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel', value: st.phone, hint: 'Used only for this booking, for example to confirm or change it.' });
-    const fEmail = field({ label: 'Email', name: 'email', type: 'email', autocomplete: 'email', value: st.email, maxlength: 254 });
     const fNote = textarea({ label: 'Anything the artist should know?', name: 'note', value: st.note, maxlength: 500, rows: 3, placeholder: 'For example the occasion, the look you have in mind, or hair length.' });
     const cMarketing = checkbox({ name: 'marketing', checked: st.marketing, label: 'Send me occasional news and offers from the studio.', hint: 'Optional. This does not affect your booking.' });
     const honey = h('div', { class: 'honeypot', attrs: { 'aria-hidden': 'true' } }, h('label', null, 'Company', h('input', { attrs: { type: 'text', name: 'company', tabindex: '-1', autocomplete: 'off' } })));
-    const form = h('form', { class: 'details-form', attrs: { novalidate: true } }, fName.wrap, fPhone.wrap, fEmail.wrap, fNote.wrap, cMarketing.wrap, honey,
+    const form = h('form', { class: 'details-form', attrs: { novalidate: true } }, fName.wrap, fPhone.wrap, fNote.wrap, cMarketing.wrap, honey,
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => { save(); go(3); } }), button('Review booking', { type: 'submit', iconRight: 'arrowRight' })));
     const save = () => {
-      st.name = fName.input.value.trim(); st.phone = fPhone.input.value.trim(); st.email = fEmail.input.value.trim();
+      st.name = fName.input.value.trim(); st.phone = fPhone.input.value.trim();
       st.note = fNote.input.value.trim(); st.marketing = cMarketing.input.checked;
       (st as any).company = (honey.querySelector('input') as HTMLInputElement).value;
     };
@@ -241,10 +240,9 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       e.preventDefault();
       save();
       let ok = true;
-      fName.setError(null); fPhone.setError(null); fEmail.setError(null);
+      fName.setError(null); fPhone.setError(null);
       if (st.name.length < 2) { fName.setError('Please enter your name.'); ok = false; }
       if (st.phone.replace(/[^0-9]/g, '').length < 10) { fPhone.setError('Please enter a valid mobile number.'); ok = false; }
-      if (st.email && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(st.email)) { fEmail.setError('Please check your email address.'); ok = false; }
       if (!ok) { form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return; }
       go(5);
     });
@@ -264,7 +262,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       setBusy(submit, true, 'Sending…');
       try {
         const r = await rpc<any>('salon_public_book', { p_salon: SALON_SLUG, p_payload: {
-          professional: p.slug, service: s.id, party_size: st.party, date: st.date, time: st.time, name: st.name, phone: st.phone, email: st.email || null,
+          professional: p.slug, service: s.id, party_size: st.party, date: st.date, time: st.time, name: st.name, phone: st.phone, email: null,
           note: st.note || null, marketing_consent: st.marketing, policy_accepted: st.policy, idempotency_key: st.idem, company: (st as any).company || '',
         } }, { anon: true });
         if (!r.ok) {
@@ -293,7 +291,6 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         h('dt', { text: 'Price' }), h('dd', { text: st.party > 1 && s.price_kind !== 'enquire' ? `${s.price_label} each, ${st.party} people` : s.price_label }),
         h('dt', { text: 'Name' }), h('dd', { text: st.name }),
         h('dt', { text: 'Mobile' }), h('dd', { text: st.phone }),
-        st.email ? [h('dt', { text: 'Email' }), h('dd', { text: st.email })] : null,
         st.note ? [h('dt', { text: 'Note' }), h('dd', { text: st.note })] : null),
       h('p', { class: 'review-edit' }, button('Change details', { variant: 'link', onClick: () => go(4) }), button('Change time', { variant: 'link', onClick: () => go(3) })),
       notice('info', `This is a booking request. The time is held for you, and it becomes confirmed once ${p.short_name} accepts it.`),

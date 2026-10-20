@@ -96,7 +96,7 @@ async function main() {
     await page.waitForSelector('input[name=name]');
     await page.fill('input[name=name]', 'Amira Khan');
     await page.fill('input[name=phone]', '07700 900111');
-    await page.fill('input[name=email]', 'amira@example.com');
+    check((await page.locator('input[name=email]').count()) === 0, 'P4b booking form has no email field');
     await page.fill('textarea[name=note]', 'Soft glam for a mehndi');
     await shot(page, 'desktop-book-4-details', false);
     await page.click('button:has-text("Review booking")');

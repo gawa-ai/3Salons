@@ -22,7 +22,6 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
     options: [{ value: 'any', label: 'No preference, the studio will advise' }, ...pros.map((p) => ({ value: p.slug, label: `${p.display_name}${p.specialty ? ', ' + p.specialty : ''}` }))] });
   const fName = field({ label: 'Full name', name: 'name', required: true, autocomplete: 'name', maxlength: 80 });
   const fPhone = field({ label: 'Mobile number', name: 'phone', type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel' });
-  const fEmail = field({ label: 'Email', name: 'email', type: 'email', autocomplete: 'email' });
   const fDate = field({ label: 'Event date', name: 'event_date', type: 'date', min: profile.salon.today, hint: 'If you are not sure yet, leave it blank.' });
   const fLoc = field({ label: 'Where is the event?', name: 'event_location', maxlength: 120, placeholder: 'Town or venue' });
   const fWant = field({ label: 'What would you like?', name: 'services_wanted', value: query.get('want') ?? '', maxlength: 200, placeholder: 'For example bridal hair and makeup, hijab styling, family members' });
@@ -32,31 +31,29 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
   const submit = button('Send enquiry', { type: 'submit', size: 'lg' });
   const body = h('div', { class: 'enquiry-body' });
   const form = h('form', { class: 'enquiry-form', attrs: { novalidate: true } },
-    fPro.wrap, h('div', { class: 'form-row' }, fName.wrap, fPhone.wrap), h('div', { class: 'form-row' }, fEmail.wrap, fDate.wrap),
+    fPro.wrap, h('div', { class: 'form-row' }, fName.wrap, fPhone.wrap), h('div', { class: 'form-row' }, fDate.wrap),
     fLoc.wrap, fWant.wrap, fMsg.wrap, honey, err,
     h('p', { class: 'muted small form-note', text: 'We use these details only to reply to your enquiry. See our privacy notice.' }),
     submit);
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    [fName, fPhone, fEmail, fDate].forEach((f) => f.setError(null));
+    [fName, fPhone, fDate].forEach((f) => f.setError(null));
     mount(err);
     let ok = true;
     if (fName.input.value.trim().length < 2) { fName.setError('Please enter your name.'); ok = false; }
     if (fPhone.input.value.replace(/[^0-9]/g, '').length < 10) { fPhone.setError('Please enter a valid mobile number.'); ok = false; }
-    if (fEmail.input.value && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(fEmail.input.value.trim())) { fEmail.setError('Please check your email address.'); ok = false; }
     if (!ok) { form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return; }
     setBusy(submit, true, 'Sending…');
     try {
       const r = await rpc<any>('salon_public_enquiry', { p_salon: SALON_SLUG, p_payload: {
         kind: 'bridal', professional: fPro.input.value, name: fName.input.value.trim(), phone: fPhone.input.value.trim(),
-        email: fEmail.input.value.trim() || null, event_date: fDate.input.value || null, event_location: fLoc.input.value.trim() || null,
+        email: null, event_date: fDate.input.value || null, event_location: fLoc.input.value.trim() || null,
         services_wanted: fWant.input.value.trim() || null, message: fMsg.input.value.trim() || null,
         idempotency_key: idem, company: (honey.querySelector('input') as HTMLInputElement).value,
       } }, { anon: true });
       if (!r.ok) {
         setBusy(submit, false);
         if (r.error === 'phone_required') fPhone.setError(r.message);
-        else if (r.error === 'email_invalid') fEmail.setError(r.message);
         else if (r.error === 'date_in_past') fDate.setError(r.message);
         else mount(err, notice('error', r.message));
         return;
@@ -141,7 +138,7 @@ export async function privacyPage(app: HTMLElement) {
     h('h1', { class: 'page-title', text: 'Privacy notice' }),
     s?.booking_mode !== 'live' ? notice('warn', 'Draft for the studio to review before launch.') : null,
     h('h2', { text: 'What we collect' }),
-    P('When you book or send an enquiry we collect your name, mobile number and, if you give it, your email address and any note you add. We also keep the details of your appointment.'),
+    P('When you book or send an enquiry we collect your name, mobile number and any note you add. We also keep the details of your appointment.'),
     h('h2', { text: 'Why we use it' }),
     P('To arrange and manage your appointment or reply to your enquiry. If you tick the optional box, we may also send you occasional news and offers; you can ask us to stop at any time.'),
     h('h2', { text: 'Who can see it' }),
