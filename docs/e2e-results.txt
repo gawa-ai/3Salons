@@ -22,6 +22,7 @@ PASS  O1 signed-out visitor is redirected away from the studio
 PASS  O2 owner sees the All professionals selector
 PASS  O3 owner "Needs confirming" shows both pending requests
 PASS  O4 owner day calendar has one column per professional
+PASS  O4b owner month view shows the month with coloured bookings
 PASS  O5 messages page is honest: SMS not connected
 PASS  O6 owner creates a one-time staff invitation code
 PASS  O7 code is not stored in plain text
@@ -49,4 +50,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-50 checks passed
+51 checks passed

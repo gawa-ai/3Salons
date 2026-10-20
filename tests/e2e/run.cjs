@@ -200,6 +200,12 @@ async function main() {
     await page.click('.seg-btn:has-text("Week")');
     await page.waitForSelector('.cgrid-week');
     await shot(page, 'desktop-owner-calendar-week', false);
+    await page.click('.seg-btn:has-text("Month")');
+    await page.waitForSelector('.mgrid');
+    check((await page.locator('.mcell').count()) >= 28 && (await page.locator('.mchip').count()) >= 1, 'O4b owner month view shows the month with coloured bookings');
+    await shot(page, 'desktop-owner-calendar-month', false);
+    await page.click('.seg-btn:has-text("Day")');
+    await page.waitForSelector('.cgrid-head');
     await page.goto(BASE + '/studio/bookings');
     await page.waitForSelector('.brow');
     await shot(page, 'desktop-owner-bookings', false);

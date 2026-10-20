@@ -6,7 +6,7 @@ import type { Ctx } from './shell';
 import { openBooking, openNewBooking, type Booking } from './booking';
 import { onPrivateClear } from '../auth/session';
 
-let state = { date: todayLocal(), view: 'day' as 'day' | 'week' };
+let state = { date: todayLocal(), view: 'day' as 'day' | 'week' | 'month' };
 onPrivateClear(() => { state = { date: todayLocal(), view: 'day' }; });
 const PX = 1.15; // pixels per minute
 
@@ -19,7 +19,9 @@ export async function calendarPage(ctx: Ctx) {
   const narrow = () => window.matchMedia('(max-width: 760px)').matches;
 
   const load = async () => {
-    const days = state.view === 'day' ? [state.date] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(state.date), i));
+    const days = state.view === 'day' ? [state.date]
+      : state.view === 'month' ? monthDays(state.date)
+      : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(state.date), i));
     renderToolbar(days);
     mount(body, spinner());
     const from = zonedToUtc(days[0], '00:00').toISOString();
@@ -29,20 +31,25 @@ export async function calendarPage(ctx: Ctx) {
       rpc<any>('salon_dash_schedule', { p_salon: ctx.salonId, p_professional: ctx.scope }),
     ]);
     const items: Booking[] = bk.items;
+    if (state.view === 'month') { renderMonth(days, items); return; }
     if (narrow()) { renderAgenda(days, items); return; }
     renderGrid(days, items, sch);
   };
 
   function renderToolbar(days: string[]) {
-    const label = state.view === 'day' ? formatDateLong(state.date) : `${formatDateShort(days[0])} – ${formatDateShort(days[6])}`;
+    const step = (dir: 1 | -1) => { state.date = state.view === 'month' ? addMonths(state.date, dir) : addDays(state.date, dir * (state.view === 'day' ? 1 : 7)); void load(); };
+    const label = state.view === 'day' ? formatDateLong(state.date)
+      : state.view === 'month' ? new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(state.date.slice(0, 7) + '-01T12:00:00Z'))
+      : `${formatDateShort(days[0])} – ${formatDateShort(days[6])}`;
+    const unit = state.view === 'day' ? 'day' : state.view === 'week' ? 'week' : 'month';
     mount(toolbar,
       h('div', { class: 'cal-nav' },
-        button('', { variant: 'ghost', size: 'sm', icon: 'chevronLeft', ariaLabel: state.view === 'day' ? 'Previous day' : 'Previous week', onClick: () => { state.date = addDays(state.date, state.view === 'day' ? -1 : -7); void load(); } }),
+        button('', { variant: 'ghost', size: 'sm', icon: 'chevronLeft', ariaLabel: `Previous ${unit}`, onClick: () => step(-1) }),
         button('Today', { variant: 'secondary', size: 'sm', onClick: () => { state.date = todayLocal(); void load(); } }),
-        button('', { variant: 'ghost', size: 'sm', icon: 'chevronRight', ariaLabel: state.view === 'day' ? 'Next day' : 'Next week', onClick: () => { state.date = addDays(state.date, state.view === 'day' ? 1 : 7); void load(); } }),
+        button('', { variant: 'ghost', size: 'sm', icon: 'chevronRight', ariaLabel: `Next ${unit}`, onClick: () => step(1) }),
         h('h2', { class: 'cal-label', attrs: { 'aria-live': 'polite' }, text: label })),
       h('div', { class: 'seg', attrs: { role: 'group', 'aria-label': 'Calendar view' } },
-        ...(['day', 'week'] as const).map((v) => h('button', { class: ['seg-btn', state.view === v && 'active'], attrs: { type: 'button', 'aria-pressed': String(state.view === v) }, text: v === 'day' ? 'Day' : 'Week', on: { click: () => { state.view = v; void load(); } } }))),
+        ...(['day', 'week', 'month'] as const).map((v) => h('button', { class: ['seg-btn', state.view === v && 'active'], attrs: { type: 'button', 'aria-pressed': String(state.view === v) }, text: v === 'day' ? 'Day' : v === 'week' ? 'Week' : 'Month', on: { click: () => { state.view = v; void load(); } } }))),
       h('input', { class: 'input input-sm cal-date', attrs: { type: 'date', 'aria-label': 'Go to date', value: state.date }, on: { change: (e: Event) => { const v = (e.target as HTMLInputElement).value; if (v) { state.date = v; void load(); } } } }));
   }
 
@@ -128,6 +135,30 @@ export async function calendarPage(ctx: Ctx) {
         h('span', { class: 'muted', text: 'Click an empty slot to add a booking.' })));
   }
 
+  function renderMonth(days: string[], items: Booking[]) {
+    const today = todayLocal();
+    const month = state.date.slice(0, 7);
+    const MAX = narrow() ? 3 : 4;
+    const cell = (d: string) => {
+      const list = items.filter((b) => b.local_date === d);
+      const shown = list.slice(0, list.length > MAX ? MAX - 1 : MAX);
+      const rest = list.length - shown.length;
+      return h('div', { class: ['mcell', d.slice(0, 7) !== month && 'is-out', d === today && 'is-today'] },
+        h('button', { class: 'mcell-num', attrs: { type: 'button', 'aria-label': `${formatDateLong(d)}, ${list.length} appointment${list.length === 1 ? '' : 's'}. Open day` }, text: String(Number(d.slice(8))),
+          on: { click: () => { state.date = d; state.view = 'day'; void load(); } } }),
+        shown.map((b) => h('button', { class: ['mchip', `pro-${b.professional_color}`, `st-${b.status}`], attrs: { type: 'button', title: `${time12(b.local_time)} ${b.client_name}, ${b.service}, ${b.professional_short}${b.status === 'pending' ? ' (awaiting confirmation)' : ''}` },
+          text: `${narrow() ? '' : time12(b.local_time) + ' '}${b.client_name}`, on: { click: () => openBooking(ctx, b.id, () => void load()) } })),
+        rest > 0 ? h('button', { class: 'mmore', attrs: { type: 'button' }, text: `${rest} more`, on: { click: () => { state.date = d; state.view = 'day'; void load(); } } }) : null);
+    };
+    mount(body, h('div', { class: 'mgrid' },
+      WEEKDAYS_SHORT.slice(1).concat(WEEKDAYS_SHORT[0]).map((w) => h('div', { class: 'mhead', text: w })),
+      days.map(cell)),
+      h('div', { class: 'cal-legend' },
+        ctx.isOwner && !ctx.scope ? ctx.pros.map((p) => h('span', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), p.short_name ?? p.display_name)) : null,
+        h('span', null, h('span', { class: 'legend-swatch legend-pending' }), 'Awaiting confirmation'),
+        h('span', { class: 'muted', text: 'Tap a date to open that day.' })));
+  }
+
   function renderAgenda(days: string[], items: Booking[]) {
     if (!items.length) { mount(body, emptyState(state.view === 'day' ? 'No appointments this day' : 'No appointments this week', 'Use New booking to add one.')); return; }
     mount(body, h('div', { class: 'agenda-days' }, days.map((d) => {
@@ -167,5 +198,19 @@ function layoutOverlaps(evs: Booking[]) {
     clusterEnd = Math.max(clusterEnd, e);
   }
   if (cluster.length) flush();
+  return out;
+}
+
+function addMonths(iso: string, n: number): string {
+  const d = new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1 + n, 1, 12));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
+}
+/** Whole weeks (Mon-Sun) that cover the month of `iso`. */
+function monthDays(iso: string): string[] {
+  const first = iso.slice(0, 7) + '-01';
+  const start = startOfWeek(first);
+  const last = addDays(addMonths(first, 1), -1);
+  const out: string[] = [];
+  for (let d = start; d <= addDays(startOfWeek(last), 6); d = addDays(d, 1)) out.push(d);
   return out;
 }

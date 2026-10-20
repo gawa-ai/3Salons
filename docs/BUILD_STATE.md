@@ -107,3 +107,4 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Not built: reminders, SEO (needs address/phone), PWA, owner delete booking, Stripe/Apple Pay.
 - Owner-only Delete booking (`20261020150000_owner_delete_booking.sql`, `salon_owner_booking_delete`): only for cancelled/declined/expired/completed/no-show; active ones must be cancelled first; audit keeps a snapshot. Button "Delete" in the booking dialog (owner only).
 - Round 9b (2026-10-21): multi-artist items may have their own time (`items[].time`); deposit snapshot = service deposit x party_size; dashboard "Next 7 days" = confirmed only (+ "plus N awaiting"); add-artist button now primary (was invisible on iPhone). Migration `20261021100000_multi_time_deposit_party.sql` (apply live).
+- Studio calendar Month view (Day/Week/Month), artist colours unchanged; e2e O4b.
