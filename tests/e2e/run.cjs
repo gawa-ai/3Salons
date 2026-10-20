@@ -150,7 +150,7 @@ async function main() {
     await page.fill('input[name=phone]', '07700 900444');
     await page.click('button:has-text("Review booking")');
     await page.waitForSelector('text=Check and send');
-    await page.click('button:has-text("Add another artist at the same time")');
+    await page.click('button:has-text("Add another artist")');
     await page.selectOption('select[name=extra-artist]', { label: 'Shirin Jal' }).catch(async () => { await page.selectOption('select[name=extra-artist]', { index: 0 }); });
     await page.click('button:has-text("Add to my booking")');
     await page.waitForSelector('text=Also at', { timeout: 8000 });

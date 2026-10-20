@@ -14,7 +14,7 @@ interface State {
   timeLabel: string | null;
   name: string; phone: string; email: string; note: string; marketing: boolean; policy: boolean;
   party: number;
-  extra: { pro: PublicPro; service: PublicService }[];
+  extra: { pro: PublicPro; service: PublicService; time: string; timeLabel: string }[];
   idem: string;
   step: 1 | 2 | 3 | 4 | 5;
   month: string; // YYYY-MM-01 shown in the calendar
@@ -90,7 +90,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     if (st.pro) rows.push(h('div', { class: 'sum-pro' }, proMark(st.pro, 'sm'), h('div', null, h('p', { class: 'sum-strong', text: st.pro.display_name }), st.pro.specialty ? h('p', { class: 'muted small', text: st.pro.specialty }) : null)));
     if (st.service) rows.push(h('div', { class: 'sum-row' }, h('span', { text: st.service.name }), h('span', { class: 'sum-strong', text: st.service.price_label })),
       h('p', { class: 'muted small', text: durationLabel(st.service.duration_min * st.party) + (st.party > 1 ? ` for ${st.party} people` : '') }));
-    st.extra.forEach((x) => rows.push(h('div', { class: 'sum-row' }, h('span', { text: `${x.service.name} with ${x.pro.short_name}` }), h('span', { class: 'sum-strong', text: x.service.price_label }))));
+    st.extra.forEach((x) => rows.push(h('div', { class: 'sum-row' }, h('span', { text: `${x.service.name} with ${x.pro.short_name}, ${x.timeLabel}` }), h('span', { class: 'sum-strong', text: x.service.price_label }))));
     if (st.date && st.time) rows.push(h('div', { class: 'sum-when' }, icon('calendar', 17), h('span', { text: `${formatDateLong(st.date)}, ${st.timeLabel}` })));
     mount(summary, h('div', { class: 'sum-card' },
       h('p', { class: 'sum-title', text: 'Your booking' }),
@@ -261,30 +261,44 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       const msg = h('div', { attrs: { 'aria-live': 'polite' } });
       const artistSel = select({ label: 'Artist', name: 'extra-artist', options: others.map((q) => ({ value: q.id, label: q.display_name })) });
       const serviceSel = select({ label: 'Service', name: 'extra-service', options: [] });
+      const timeSel = select({ label: 'Time', name: 'extra-time', options: [] });
+      let slots: { time: string; label: string }[] = [];
+      const add = button('Add to my booking', { onClick: () => {
+        const q = others.find((o) => o.id === artistSel.input.value)!;
+        const svc = q.services.find((x) => x.id === serviceSel.input.value);
+        const sl = slots.find((x) => x.time === timeSel.input.value);
+        if (!svc || !sl) { mount(msg, notice('error', 'Please choose a service and a time.')); return; }
+        st.extra = [...st.extra, { pro: q, service: svc, time: sl.time, timeLabel: sl.label }]; st.idem = newIdempotencyKey(); render();
+      } });
+      const loadTimes = async () => {
+        mount(msg);
+        const q = others.find((o) => o.id === artistSel.input.value)!;
+        const svcId = serviceSel.input.value;
+        timeSel.input.replaceChildren(h('option', { text: 'Loading times…' })); add.disabled = true;
+        try {
+          const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: q.slug, p_service: svcId, p_date: st.date, p_party: 1 }, { anon: true });
+          if (!r.ok) throw new ApiError(r.error, r.message);
+          if (serviceSel.input.value !== svcId) return;
+          slots = r.slots as { time: string; label: string }[];
+          if (!slots.length) { timeSel.input.replaceChildren(h('option', { text: 'No times that day' })); mount(msg, notice('warn', `${q.display_name} has no free times on ${formatDateLong(st.date!)} for this service. Try another artist or service.`)); return; }
+          timeSel.input.replaceChildren(...slots.map((x) => h('option', { attrs: { value: x.time }, text: x.label })));
+          timeSel.input.value = slots.some((x) => x.time === st.time) ? st.time! : slots[0].time;
+          add.disabled = false;
+        } catch (e) { mount(msg, notice('error', (e as Error).message)); }
+      };
       const fill = () => {
         const q = others.find((o) => o.id === artistSel.input.value)!;
         serviceSel.input.replaceChildren(...q.services.filter((x) => x.bookable_online).map((x) => h('option', { attrs: { value: x.id }, text: `${x.name} (${durationLabel(x.duration_min)}, ${x.price_label})` })));
+        void loadTimes();
       };
-      artistSel.input.addEventListener('change', fill); fill();
-      const add = button('Add to my booking', { onClick: async () => {
-        mount(msg);
-        const q = others.find((o) => o.id === artistSel.input.value)!;
-        const svc = q.services.find((x) => x.id === serviceSel.input.value);
-        if (!svc) { mount(msg, notice('error', 'Please choose a service.')); return; }
-        setBusy(add, true, 'Checking…');
-        try {
-          const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: q.slug, p_service: svc.id, p_date: st.date, p_party: 1 }, { anon: true });
-          if (!r.ok) throw new ApiError(r.error, r.message);
-          const free = (r.slots as { time: string }[]).some((x) => x.time === st.time);
-          if (!free) { setBusy(add, false); mount(msg, notice('warn', `${q.display_name} is not free for ${svc.name} at ${st.timeLabel} on ${formatDateLong(st.date!)}. Please choose another service or artist, or go back and pick another time.`)); return; }
-          st.extra = [...st.extra, { pro: q, service: svc }]; st.idem = newIdempotencyKey(); render();
-        } catch (e) { setBusy(add, false); mount(msg, notice('error', (e as Error).message)); }
-      } });
-      mount(box, h('div', { class: 'add-artist-form' }, artistSel.wrap, serviceSel.wrap, msg,
+      artistSel.input.addEventListener('change', fill);
+      serviceSel.input.addEventListener('change', () => void loadTimes());
+      fill();
+      mount(box, h('div', { class: 'add-artist-form' }, artistSel.wrap, serviceSel.wrap, timeSel.wrap, msg,
         h('div', { class: 'row-end' }, button('Cancel', { variant: 'ghost', onClick: () => mount(box, trigger()) }), add)));
     };
-    const trigger = () => h('div', null, h('p', { class: 'muted small', text: `Want another service at the same time with a different artist, for example for a friend or family member?` }),
-      button('Add another artist at the same time', { variant: 'secondary', icon: 'plus', onClick: open }));
+    const trigger = () => h('div', null, h('p', { class: 'muted small', text: 'Want another service with a different artist, at the same time or one after the other? For example hair at 6:30, then hijab at 7:30.' }),
+      button('Add another artist', { variant: 'primary', icon: 'plus', onClick: open }));
     mount(box, trigger());
     return box;
   }
@@ -306,7 +320,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         const r = st.extra.length
           ? await rpc<any>('salon_public_book_multi', { p_salon: SALON_SLUG, p_payload: { ...common, items: [
               { professional: p.slug, service: s.id, party_size: st.party },
-              ...st.extra.map((x) => ({ professional: x.pro.slug, service: x.service.id, party_size: 1 }))] } }, { anon: true })
+              ...st.extra.map((x) => ({ professional: x.pro.slug, service: x.service.id, party_size: 1, time: x.time }))] } }, { anon: true })
           : await rpc<any>('salon_public_book', { p_salon: SALON_SLUG, p_payload: { ...common, professional: p.slug, service: s.id, party_size: st.party } }, { anon: true });
         if (!r.ok) {
           setBusy(submit, false);
@@ -332,7 +346,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         st.party > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(st.party) })] : null,
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(st.date!)} at ${st.timeLabel} (UK time)` }),
         h('dt', { text: 'Price' }), h('dd', { text: st.party > 1 && s.price_kind !== 'enquire' ? `${s.price_label} each, ${st.party} people` : s.price_label }),
-        st.extra.map((x) => [h('dt', { text: `Also at ${st.timeLabel}` }),
+        st.extra.map((x) => [h('dt', { text: `Also at ${x.timeLabel}` }),
           h('dd', null, h('span', { text: `${x.service.name} with ${x.pro.display_name}, ${durationLabel(x.service.duration_min)}, ${x.service.price_label} ` }),
             button('Remove', { variant: 'link', onClick: () => { st.extra = st.extra.filter((y) => y !== x); st.idem = newIdempotencyKey(); render(); } }))]),
         h('dt', { text: 'Name' }), h('dd', { text: st.name }),
@@ -364,7 +378,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
           h('dt', { text: 'Artist' }), h('dd', { text: r.professional }),
           h('dt', { text: 'Service' }), h('dd', { text: `${r.service}, ${r.price_label}` }),
           r.party_size > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(r.party_size) })] : null,
-          h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(r.date)} at ${st.timeLabel} (UK time)` }),
+          h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(r.date)} at ${String(r.when).split(' at ')[1] ?? st.timeLabel} (UK time)` }),
           st.note ? [h('dt', { text: 'Your note' }), h('dd', { text: st.note })] : null),
         h('div', { class: 'manage-box' },
           h('p', { class: 'sum-strong', text: list.length > 1 ? `Private link for ${r.professional_short}'s booking` : 'Keep this private link' }),

@@ -825,4 +825,23 @@ select (public.salon_owner_booking_delete(:'del_bk'::uuid))->>'ok' as del_ok \gs
 reset role;
 select pg_temp.check(:'del_ok' = 'true' and not exists (select 1 from app.bookings where id = :'del_bk'::uuid), 'DEL3 owner deletes a cancelled booking');
 select pg_temp.check(exists (select 1 from app.audit_log where action = 'booking.deleted' and entity_id = :'del_bk'), 'DEL4 deletion is kept in the audit log');
+
+-- ---- Round 9b: deposit x people, per-artist times, Next 7 days = confirmed only
+reset role;
+\i ../../supabase/migrations/20261021100000_multi_time_deposit_party.sql
+set role anon; select pg_temp.login(null);
+select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair','party_size','3',
+  'date',:'gdate','time','15:00','name','Trio Group','phone','07700 900777','policy_accepted',true,'idempotency_key','idem-dep-party-000000001')) as dp \gset
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object('date',:'gdate','time','16:30','name','Two Times','phone','07700 900778','policy_accepted',true,
+  'idempotency_key','idem-two-times-00000001', 'items', jsonb_build_array(
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+    jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair','time','11:30')))) as mt \gset
+reset role;
+select pg_temp.check((:'dp'::jsonb)->>'ok' = 'true' and (select k.deposit_pence = v.deposit_pence * 3 and k.deposit_pence > 0
+    from app.bookings k join app.services v on v.id = k.service_id where k.ref = (:'dp'::jsonb)->>'ref'),
+  'DP0 deposit is multiplied by the number of people', :'dp'::jsonb);
+select pg_temp.check((:'mt'::jsonb)->>'ok' = 'true' and (select count(distinct starts_at) = 2 from app.bookings
+    where ref in ((:'mt'::jsonb)#>>'{bookings,0,ref}', (:'mt'::jsonb)#>>'{bookings,1,ref}')),
+  'DP2 each artist in a multi booking can have her own time', :'mt'::jsonb);
+select pg_temp.check(pg_get_functiondef('public.salon_dash_overview(uuid,uuid)'::regprocedure) like '%pending_7d%', 'DP1 overview counts confirmed and awaiting separately');
 \echo ALL_TESTS_PASSED

@@ -25,7 +25,7 @@ export async function overviewPage(ctx: Ctx) {
       h('div', { class: 'tiles' },
         tile('Today', String(today.length), today.length === 1 ? 'appointment' : 'appointments', '/studio/calendar'),
         tile('Awaiting confirmation', String(c.pending), c.pending ? 'requests need your answer' : 'nothing waiting', '/studio/bookings?view=pending', c.pending ? 'tile-attention' : ''),
-        tile('Next 7 days', String(c.upcoming_7d), 'pending and confirmed', '/studio/bookings'),
+        tile('Next 7 days', String(c.upcoming_7d), `confirmed${c.pending_7d ? `, plus ${c.pending_7d} awaiting` : ''}`, '/studio/bookings'),
         tile('Completed, last 30 days', pounds(c.completed_value_30d_pence), `${c.completed_30d} appointments at listed prices. Not payments received.`, '/studio/reports')),
       c.awaiting_outcome ? notice('info', h('p', null, `${c.awaiting_outcome} past appointment${c.awaiting_outcome === 1 ? '' : 's'} still need an outcome (completed or no-show). `, h('a', { attrs: { href: '/studio/bookings?view=outcome' }, text: 'Review them' }))) : null,
       h('div', { class: 'ov-grid' },
