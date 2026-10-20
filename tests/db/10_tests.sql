@@ -867,4 +867,38 @@ select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object('date'
 reset role;
 select pg_temp.check((:'od'::jsonb)->>'error' = 'slot_taken' and not exists (select 1 from app.clients where name = 'Overlap Duo' and exists (select 1 from app.bookings b where b.client_id = clients.id)),
   'DP4 the same artist at the same time twice is still refused, nothing booked', :'od'::jsonb);
+
+-- ---- Round 9d: one deposit for a multi-service request
+reset role;
+\i ../../supabase/migrations/20261021120000_group_deposit.sql
+select (x->>'date') as gdate3 from jsonb_array_elements((public.salon_public_days('shahina-ahmed','sofia-mua',:'s_sofia_makeup', null, 42, 1))->'days') x order by 1 desc offset 1 limit 1 \gset
+select (x->>'time') as gt_a from jsonb_array_elements((public.salon_public_slots('shahina-ahmed','sofia-mua',:'s_sofia_makeup',:'gdate3'))->'slots') x order by 1 asc limit 1 \gset
+select v.id as s_sofia_hm from app.services v join app.professionals p on p.id = v.professional_id where p.slug = 'sofia-mua' and v.name = 'Party Hair & Makeup' \gset
+select (x->>'time') as gt_b from jsonb_array_elements((public.salon_public_slots('shahina-ahmed','sofia-mua',:'s_sofia_hm',:'gdate3'))->'slots') x order by 1 desc limit 1 \gset
+set role anon; select pg_temp.login(null);
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object('date',:'gdate3','time',:'gt_a','name','Group Deposit','phone','07700 900781','policy_accepted',true,
+  'idempotency_key','idem-group-deposit-0001', 'items', jsonb_build_array(
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_hm','time',:'gt_b')))) as gd \gset
+reset role;
+select pg_temp.check((:'gd'::jsonb)->>'ok' = 'true', 'GD0 group of two services booked', :'gd'::jsonb);
+select id as gd1 from app.bookings where ref = (:'gd'::jsonb)#>>'{bookings,0,ref}' \gset
+select id as gd2 from app.bookings where ref = (:'gd'::jsonb)#>>'{bookings,1,ref}' \gset
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_dash_booking_action(:'gd1'::uuid, 'confirm') as gd_ask \gset
+reset role;
+select pg_temp.check((:'gd_ask'::jsonb)->>'ok' = 'true' and (select count(*) = 2 and bool_and(deposit_status = 'requested') from app.bookings where id in (:'gd1', :'gd2')),
+  'GD1 asking for the deposit on one booking holds the whole group', :'gd_ask'::jsonb);
+select pg_temp.check((select count(*) = 1 and bool_and(body like '%30%' and body like '%Party Makeup%' and body like '%Party Hair & Makeup%' and body like '%bookings%')
+                        from app.notifications where purpose = 'deposit_request' and booking_id in (:'gd1', :'gd2')),
+  'GD2 one deposit text asks for the combined total and lists both services',
+  (select jsonb_agg(body) from app.notifications where purpose = 'deposit_request' and booking_id in (:'gd1', :'gd2')));
+set role authenticated; select pg_temp.login(:'u_owner');
+select public.salon_dash_booking_action(:'gd1'::uuid, 'deposit_received') as gd_paid \gset
+reset role;
+select pg_temp.check((select count(*) = 2 and bool_and(status = 'confirmed' and deposit_status = 'received') from app.bookings where id in (:'gd1', :'gd2')),
+  'GD3 one payment confirms every booking in the group', :'gd_paid'::jsonb);
+select pg_temp.check((select count(*) = 1 and bool_and(body like '%30%' and body like '%confirmed%') from app.notifications where purpose = 'deposit_received' and booking_id in (:'gd1', :'gd2')),
+  'GD4 one thank-you text for the whole group',
+  (select jsonb_agg(body) from app.notifications where purpose = 'deposit_received' and booking_id in (:'gd1', :'gd2')));
 \echo ALL_TESTS_PASSED

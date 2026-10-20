@@ -109,3 +109,4 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Round 9b (2026-10-21): multi-artist items may have their own time (`items[].time`); deposit snapshot = service deposit x party_size; dashboard "Next 7 days" = confirmed only (+ "plus N awaiting"); add-artist button now primary (was invisible on iPhone). Migration `20261021100000_multi_time_deposit_party.sql` (apply live).
 - Studio calendar Month view (Day/Week/Month), artist colours unchanged; e2e O4b.
 - Round 9c: add-another-service on the review page allows the same artist, own date and time (migration 20261021110000_multi_same_artist_dates.sql; per-item date; same_artist rule removed, overlaps still refused).
+- Round 9d: one combined deposit for multi-service requests (migration 20261021120000_group_deposit.sql): one text with the total, one payment confirms the group, one expired text. Payment details = the artist who accepts first.
