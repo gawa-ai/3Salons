@@ -11,47 +11,6 @@
   SUPABASE_PUBLISHABLE_KEY = "sb_publishable__0EaCw7l1NKRnmOXEKl2Gg_2_g0I1KD"
   SALON_SLUG = "shahina-ahmed"
 
-# ---- COMING SOON GATE (temporary) -------------------------------------------------
-# While these rules are active, every URL shows /coming-soon.html and the booking site,
-# Studio and logins cannot be reached. TO GO LIVE: delete this whole block (down to the
-# "END COMING SOON" line) and redeploy. The real site below is untouched.
-[[redirects]]
-  from = "/coming-soon.css"
-  to = "/coming-soon.css"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/fonts/*"
-  to = "/fonts/:splat"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/brand/*"
-  to = "/brand/:splat"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/favicon.svg"
-  to = "/favicon.svg"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/favicon-32.png"
-  to = "/favicon-32.png"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/apple-touch-icon.png"
-  to = "/apple-touch-icon.png"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/*"
-  to = "/coming-soon.html"
-  status = 200
-  force = true
-# ---- END COMING SOON ---------------------------------------------------------------
-
 [[redirects]]
   from = "/*"
   to = "/index.html"
