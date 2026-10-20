@@ -361,6 +361,27 @@ export async function settingsPage(ctx: Ctx) {
   const notice1 = field({ label: 'Minimum notice (hours)', name: 'notice', type: 'number', min: '0', max: '336', value: String(s.min_notice_min / 60) });
   const ahead = field({ label: 'Book up to (days ahead)', name: 'ahead', type: 'number', min: '1', max: '365', value: String(s.max_days_ahead) });
   const grid = select({ label: 'Start times every', name: 'grid', value: String(s.slot_interval_min), options: [10, 15, 20, 30, 60].map((n) => ({ value: String(n), label: `${n} minutes` })) });
+  // ---- which texts are sent (cost control)
+  const SMS_TYPES: [string, string, string][] = [
+    ['request_received', 'Booking request received', 'Sent as soon as a client asks for a booking.'],
+    ['deposit_request', 'Deposit request', 'Sent when you accept a booking that needs a deposit (includes bank details).'],
+    ['deposit_received', 'Deposit received', 'Sent when you press "Deposit received". Tells the client they are confirmed.'],
+    ['confirmed', 'Booking confirmed', 'Sent when a booking with no deposit is confirmed.'],
+    ['deposit_expired', 'Deposit not received', 'Sent when the deposit time runs out and the time is released.'],
+    ['rescheduled', 'Booking moved', 'Sent when a booking is moved to a new time.'],
+    ['cancelled', 'Booking cancelled', 'Sent when a booking is cancelled or declined.'],
+  ];
+  const smsOn = (s.sms_purposes ?? {}) as Record<string, boolean>;
+  const smsChecks = SMS_TYPES.map(([key, label, hint]) => ({ key, c: checkbox({ label, name: `sms-${key}`, checked: smsOn[key] === true, hint }) }));
+  const smsErr = h('div');
+  const smsSave = button('Save text settings', { onClick: async () => {
+    mount(smsErr);
+    setBusy(smsSave, true, 'Saving…');
+    try {
+      await rpc('salon_owner_sms_save', { p_salon: ctx.salonId, p_payload: Object.fromEntries(smsChecks.map((x) => [x.key, x.c.input.checked])) });
+      toast('Text settings saved'); setBusy(smsSave, false);
+    } catch (e) { setBusy(smsSave, false); mount(smsErr, notice('error', (e as Error).message)); }
+  } });
   const err = h('div');
   const save = button('Save settings', { onClick: async () => {
     mount(err);
@@ -407,6 +428,9 @@ export async function settingsPage(ctx: Ctx) {
       h('dl', { class: 'kv' }, h('dt', { text: 'Text messages' }), h('dd', { text: s.sms_connected ? 'Connected' : 'Not connected' }),
         h('dt', { text: 'Phone answering' }), h('dd', { text: 'Not connected' }), h('dt', { text: 'Payments and deposits' }), h('dd', { text: 'Bank transfer to the studio, checked by you. No money is taken online.' }))),
     err, h('div', { class: 'row-end' }, save),
+    h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Which texts are sent to clients' }),
+      h('p', { class: 'muted small', text: 'Each text costs a few pence, longer texts cost more. Turn off the ones you do not need. This only works once text messaging is connected.' }),
+      ...smsChecks.map((x) => x.c.wrap), smsErr, h('div', { class: 'row-end' }, smsSave)),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Deposits' }),
       h('p', { class: 'muted small', text: 'When you accept a booking that has a deposit, the client is asked to pay it by bank transfer. You check your own bank, then press "Deposit received" on the booking. Nothing is paid on the website.' }),
       depInstr.wrap, depHours.wrap,
@@ -422,7 +446,7 @@ const ACTION_LABEL: Record<string, string> = {
   'client.updated': 'Client updated', 'enquiry.created': 'Enquiry received', 'enquiry.updated': 'Enquiry updated', 'service.created': 'Service added', 'service.updated': 'Service changed',
   'hours.updated': 'Working hours changed', 'salon_hours.updated': 'Studio hours changed', 'time_off.added': 'Time off added', 'time_off.removed': 'Time off removed',
   'invitation.created': 'Invitation created', 'invitation.accepted': 'Invitation accepted', 'invitation.revoked': 'Invitation revoked', 'membership.disabled': 'Login disabled',
-  'membership.active': 'Login enabled', 'professional.created': 'Profile added', 'professional.updated': 'Profile changed', 'settings.updated': 'Settings changed',
+  'membership.active': 'Login enabled', 'professional.created': 'Profile added', 'professional.updated': 'Profile changed', 'settings.updated': 'Settings changed', 'sms_settings.updated': 'Text settings changed',
   'gallery.added': 'Portfolio item added', 'gallery.updated': 'Portfolio item changed', 'gallery.removed': 'Portfolio item removed',
 };
 export async function auditPage(ctx: Ctx) {

@@ -685,4 +685,84 @@ select pg_temp.check((:'gb'::jsonb)->>'ok' = 'true' and (:'gb'::jsonb)->>'party_
   'D33 group booking holds 2x the time, 2x the price and stores the party size', :'gb'::jsonb);
 select pg_temp.check((:'gb2'::jsonb)->>'error' = 'slot_taken', 'D34 a single booking inside the group''s extra time is refused', :'gb2'::jsonb);
 select pg_temp.check((:'gb3'::jsonb)->>'error' = 'party_invalid', 'D35 more than 6 people is refused (use an enquiry)', :'gb3'::jsonb);
+
+-- =====================================================================
+-- Round 8: SMS outbox (claim / complete / safety) and owner text toggles
+-- =====================================================================
+reset role;
+-- the outbox migrations (re-applied here: earlier \i lines restore older function bodies)
+\i ../../supabase/migrations/20261016100000_sms_outbox.sql
+\i ../../supabase/migrations/20261020130000_sms_purpose_toggles.sql
+
+select pg_temp.check((select sms_purposes->>'deposit_received' = 'true' and sms_purposes->>'confirmed' = 'true' and sms_purposes->>'request_received' = 'false'
+                        from app.salons where id = :'salon'), 'S1 default texts: deposit_received and confirmed on, request_received off');
+
+-- owner can change toggles; a professional and anon cannot; unknown keys are refused
+set role authenticated; select pg_temp.login(:'u_owner');
+select pg_temp.q(format($$select public.salon_owner_sms_save(%L, '{"request_received":true,"deposit_expired":true}'::jsonb)$$, :'salon')) as sv1 \gset
+select pg_temp.login(:'u_sofia');
+select pg_temp.q(format($$select public.salon_owner_sms_save(%L, '{"confirmed":false}'::jsonb)$$, :'salon')) as sv2 \gset
+select pg_temp.login(:'u_owner');
+select pg_temp.q(format($$select public.salon_owner_sms_save(%L, '{"bank_details":true}'::jsonb)$$, :'salon')) as sv3 \gset
+select pg_temp.q(format($$select public.salon_owner_sms_save(%L, '{"confirmed":"yes"}'::jsonb)$$, :'salon')) as sv4 \gset
+reset role; set role anon; select pg_temp.login(null);
+select pg_temp.q(format($$select public.salon_owner_sms_save(%L, '{"confirmed":false}'::jsonb)$$, :'salon')) as sv5 \gset
+reset role;
+select pg_temp.check((:'sv1'::jsonb)#>>'{res,ok}' = 'true'
+  and (select sms_purposes->>'request_received' = 'true' and sms_purposes->>'confirmed' = 'true' from app.salons where id = :'salon'),
+  'S2 owner saves text toggles and untouched types keep their value', :'sv1'::jsonb);
+select pg_temp.check((:'sv2'::jsonb)->>'err' is not null, 'S3 a professional cannot change the studio text settings', :'sv2'::jsonb);
+select pg_temp.check((:'sv3'::jsonb)->>'err' is not null and (:'sv4'::jsonb)->>'err' is not null, 'S4 unknown type or non-boolean value refused', jsonb_build_array(:'sv3'::jsonb, :'sv4'::jsonb));
+select pg_temp.check((:'sv5'::jsonb)->>'err' is not null, 'S5 anonymous visitor cannot change text settings', :'sv5'::jsonb);
+select pg_temp.check(exists (select 1 from app.audit_log where action = 'sms_settings.updated' and salon_id = :'salon'), 'S6 text setting change is audited');
+
+-- claim / complete: only service_role may call them
+set role authenticated; select pg_temp.login(:'u_owner');
+select pg_temp.q('select count(*) from public.sms_claim(5)') as cl_auth \gset
+reset role; set role anon; select pg_temp.login(null);
+select pg_temp.q('select count(*) from public.sms_claim(5)') as cl_anon \gset
+reset role;
+select pg_temp.check((:'cl_auth'::jsonb)->>'err' is not null and (:'cl_anon'::jsonb)->>'err' is not null, 'S7 browser roles cannot claim or complete texts', jsonb_build_array(:'cl_auth'::jsonb, :'cl_anon'::jsonb));
+
+-- a queued text for a salon that is NOT connected is never claimed; sms_test rows are
+update app.salons set sms_connected = false where id = :'salon';
+insert into app.notifications (salon_id, audience, channel, purpose, to_addr, body, status, dedupe_key)
+values (:'salon', 'customer', 'sms', 'confirmed', '07700900123', 'real customer text', 'queued', 'sms-test-real-1'),
+       (:'salon', 'customer', 'sms', 'sms_test', '07700900124', 'test text', 'queued', 'sms-test-test-1');
+select count(*) as c1 from public.sms_claim(10) \gset
+select pg_temp.check(:c1 = 1 and (select status = 'queued' and attempts = 0 from app.notifications where dedupe_key = 'sms-test-real-1'),
+  'S8 not-connected studio: customer text stays queued, only the sms_test row is claimed');
+select count(*) as c2 from public.sms_claim(10) \gset
+select pg_temp.check(:c2 = 0, 'S9 a claimed row is locked: a second worker gets nothing (no double send)');
+select id as sms_nid from app.notifications where dedupe_key = 'sms-test-test-1' \gset
+select public.sms_complete(:sms_nid, 'sent', 'SM-test-1', null);
+select public.sms_complete(:sms_nid, 'failed', null, 'should not apply');
+select pg_temp.check((select status = 'sent' and provider_message_id = 'SM-test-1' and sent_at is not null and locked_at is null from app.notifications where id = :sms_nid),
+  'S10 sent is final: completing twice does not overwrite it');
+
+-- retry with back-off, capped at 3 attempts, then failed
+update app.notifications set status = 'queued', attempts = 0, sent_at = null, locked_at = null, next_attempt_at = null where id = :sms_nid;
+select count(*) from public.sms_claim(10) \gset
+select public.sms_complete(:sms_nid, 'retry', null, 'http_402');
+select pg_temp.check((select status = 'queued' and next_attempt_at > now() and attempts = 1 from app.notifications where id = :sms_nid), 'S11 retry: queued again with back-off');
+select count(*) as c3 from public.sms_claim(10) \gset
+select pg_temp.check(:c3 = 0, 'S12 a row waiting for its back-off time is not claimed early');
+update app.notifications set next_attempt_at = null, attempts = 2 where id = :sms_nid;
+select count(*) from public.sms_claim(10) \gset
+select public.sms_complete(:sms_nid, 'retry', null, 'http_402');
+select pg_temp.check((select status = 'failed' from app.notifications where id = :sms_nid), 'S13 third failed attempt becomes failed, never loops forever');
+
+-- a worker that died mid-send leaves a stale lock: marked failed, NEVER resent
+update app.notifications set status = 'queued', attempts = 1, locked_at = now() - interval '10 minutes', next_attempt_at = null where id = :sms_nid;
+select count(*) as c4 from public.sms_claim(10) \gset
+select pg_temp.check(:c4 = 0 and (select status = 'failed' and last_error like 'unknown_send_state%' from app.notifications where id = :sms_nid),
+  'S14 stale lock is failed as unknown_send_state, not resent');
+
+-- connected studio: customer text is claimed
+update app.salons set sms_connected = true where id = :'salon';
+select count(*) as c5 from public.sms_claim(10) \gset
+select pg_temp.check(:c5 = 1 and (select status = 'queued' and attempts = 1 and locked_at is not null from app.notifications where dedupe_key = 'sms-test-real-1'),
+  'S15 once connected, the customer text is claimed');
+update app.salons set sms_connected = false where id = :'salon';
+delete from app.notifications where dedupe_key in ('sms-test-real-1', 'sms-test-test-1');
 \echo ALL_TESTS_PASSED
