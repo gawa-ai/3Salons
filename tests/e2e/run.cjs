@@ -150,11 +150,14 @@ async function main() {
     await page.fill('input[name=phone]', '07700 900444');
     await page.click('button:has-text("Review booking")');
     await page.waitForSelector('text=Check and send');
-    await page.click('button:has-text("Add another artist")');
+    await page.click('button:has-text("Add another service")');
     await page.selectOption('select[name=extra-artist]', { label: 'Shirin Jal' }).catch(async () => { await page.selectOption('select[name=extra-artist]', { index: 0 }); });
     await page.click('button:has-text("Add to my booking")');
-    await page.waitForSelector('text=Also at', { timeout: 8000 });
+    await page.waitForSelector('text=Also booked', { timeout: 8000 });
     check(true, 'M-UI1 second artist added at the same time on the review step');
+    await page.click('button:has-text("Add another service")');
+    check((await page.locator('input[name=extra-date]').count()) === 1 && (await page.locator('select[name=extra-artist] option:checked').textContent()).includes('Sofia'), 'M-UI1b the form offers the same artist again, with its own date');
+    await page.click('button:has-text("Cancel")');
     await page.click('button:has-text("Send booking request")');
     await page.waitForSelector('text=Your requests have been sent');
     check((await page.locator('.done-one').count()) === 2 && (await page.locator('a:has-text("Open my booking")').count()) === 2, 'M-UI2 two bookings, each with its own reference and private link');

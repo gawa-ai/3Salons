@@ -829,6 +829,7 @@ select pg_temp.check(exists (select 1 from app.audit_log where action = 'booking
 -- ---- Round 9b: deposit x people, per-artist times, Next 7 days = confirmed only
 reset role;
 \i ../../supabase/migrations/20261021100000_multi_time_deposit_party.sql
+\i ../../supabase/migrations/20261021110000_multi_same_artist_dates.sql
 set role anon; select pg_temp.login(null);
 select public.salon_public_book('shahina-ahmed', jsonb_build_object('professional','shirin-jal','service',:'s_shirin_hair','party_size','3',
   'date',:'gdate','time','15:00','name','Trio Group','phone','07700 900777','policy_accepted',true,'idempotency_key','idem-dep-party-000000001')) as dp \gset
@@ -844,4 +845,26 @@ select pg_temp.check((:'mt'::jsonb)->>'ok' = 'true' and (select count(distinct s
     where ref in ((:'mt'::jsonb)#>>'{bookings,0,ref}', (:'mt'::jsonb)#>>'{bookings,1,ref}')),
   'DP2 each artist in a multi booking can have her own time', :'mt'::jsonb);
 select pg_temp.check(pg_get_functiondef('public.salon_dash_overview(uuid,uuid)'::regprocedure) like '%pending_7d%', 'DP1 overview counts confirmed and awaiting separately');
+
+-- ---- Round 9c: same artist on two different days in one request
+select (x->>'date') as gdate2 from jsonb_array_elements((public.salon_public_days('shahina-ahmed','sofia-mua',:'s_sofia_makeup', null, 42, 1))->'days') x order by 1 asc limit 1 \gset
+select (x->>'time') as gtime1 from jsonb_array_elements((public.salon_public_slots('shahina-ahmed','sofia-mua',:'s_sofia_makeup',:'gdate'))->'slots') x order by 1 asc limit 1 \gset
+select (x->>'time') as gtime2 from jsonb_array_elements((public.salon_public_slots('shahina-ahmed','sofia-mua',:'s_sofia_makeup',:'gdate2'))->'slots') x order by 1 asc limit 1 \gset
+set role anon; select pg_temp.login(null);
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object('date',:'gdate','time',:'gtime1','name','Two Days','phone','07700 900779','policy_accepted',true,
+  'idempotency_key','idem-two-days-000000001', 'items', jsonb_build_array(
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup','date',:'gdate2','time',:'gtime2')))) as td \gset
+reset role;
+select pg_temp.check((:'td'::jsonb)->>'ok' = 'true' and (select count(distinct professional_id) = 1 and count(distinct (starts_at at time zone 'Europe/London')::date) = 2
+    from app.bookings where ref in ((:'td'::jsonb)#>>'{bookings,0,ref}', (:'td'::jsonb)#>>'{bookings,1,ref}')),
+  'DP3 the same artist can be booked on two different days in one request', :'td'::jsonb);
+set role anon; select pg_temp.login(null);
+select public.salon_public_book_multi('shahina-ahmed', jsonb_build_object('date',:'gdate','time','14:00','name','Overlap Duo','phone','07700 900780','policy_accepted',true,
+  'idempotency_key','idem-overlap-duo-000001', 'items', jsonb_build_array(
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup'),
+    jsonb_build_object('professional','sofia-mua','service',:'s_sofia_makeup')))) as od \gset
+reset role;
+select pg_temp.check((:'od'::jsonb)->>'error' = 'slot_taken' and not exists (select 1 from app.clients where name = 'Overlap Duo' and exists (select 1 from app.bookings b where b.client_id = clients.id)),
+  'DP4 the same artist at the same time twice is still refused, nothing booked', :'od'::jsonb);
 \echo ALL_TESTS_PASSED

@@ -2,7 +2,7 @@ import { h, icon, mount, newIdempotencyKey } from '../lib/dom';
 import { button, linkButton, field, textarea, select, checkbox, spinner, errorBox, notice, setBusy, toast } from '../lib/ui';
 import { rpc, ApiError } from '../lib/supabase';
 import { SALON_SLUG } from '../config';
-import { addDays, formatDateLong, formatMonthYear, weekdayOf, durationLabel, minutesOf } from '../lib/format';
+import { addDays, formatDateShort, formatDateLong, formatMonthYear, weekdayOf, durationLabel, minutesOf } from '../lib/format';
 import { loadProfile, type PublicProfile, type PublicPro, type PublicService } from './data';
 import { publicShell, proMark } from './layout';
 
@@ -14,7 +14,7 @@ interface State {
   timeLabel: string | null;
   name: string; phone: string; email: string; note: string; marketing: boolean; policy: boolean;
   party: number;
-  extra: { pro: PublicPro; service: PublicService; time: string; timeLabel: string }[];
+  extra: { pro: PublicPro; service: PublicService; date: string; time: string; timeLabel: string }[];
   idem: string;
   step: 1 | 2 | 3 | 4 | 5;
   month: string; // YYYY-MM-01 shown in the calendar
@@ -90,7 +90,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
     if (st.pro) rows.push(h('div', { class: 'sum-pro' }, proMark(st.pro, 'sm'), h('div', null, h('p', { class: 'sum-strong', text: st.pro.display_name }), st.pro.specialty ? h('p', { class: 'muted small', text: st.pro.specialty }) : null)));
     if (st.service) rows.push(h('div', { class: 'sum-row' }, h('span', { text: st.service.name }), h('span', { class: 'sum-strong', text: st.service.price_label })),
       h('p', { class: 'muted small', text: durationLabel(st.service.duration_min * st.party) + (st.party > 1 ? ` for ${st.party} people` : '') }));
-    st.extra.forEach((x) => rows.push(h('div', { class: 'sum-row' }, h('span', { text: `${x.service.name} with ${x.pro.short_name}, ${x.timeLabel}` }), h('span', { class: 'sum-strong', text: x.service.price_label }))));
+    st.extra.forEach((x) => rows.push(h('div', { class: 'sum-row' }, h('span', { text: `${x.service.name} with ${x.pro.short_name}, ${formatDateShort(x.date)} ${x.timeLabel}` }), h('span', { class: 'sum-strong', text: x.service.price_label }))));
     if (st.date && st.time) rows.push(h('div', { class: 'sum-when' }, icon('calendar', 17), h('span', { text: `${formatDateLong(st.date)}, ${st.timeLabel}` })));
     mount(summary, h('div', { class: 'sum-card' },
       h('p', { class: 'sum-title', text: 'Your booking' }),
@@ -253,52 +253,58 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
 
   // -------------------------------------------------------------- add another artist at the same time
   function addAnotherArtist(): Node | null {
-    const used = new Set([st.pro!.id, ...st.extra.map((x) => x.pro.id)]);
-    const others = bookable.filter((q) => !used.has(q.id));
-    if (!others.length || st.extra.length >= 2) return null;
+    if (st.extra.length >= 2 || !bookable.length) return null;
     const box = h('div', { class: 'add-artist' });
     const open = () => {
       const msg = h('div', { attrs: { 'aria-live': 'polite' } });
-      const artistSel = select({ label: 'Artist', name: 'extra-artist', options: others.map((q) => ({ value: q.id, label: q.display_name })) });
+      const artistSel = select({ label: 'Artist', name: 'extra-artist', value: st.pro!.id, options: bookable.map((q) => ({ value: q.id, label: q.display_name })) });
       const serviceSel = select({ label: 'Service', name: 'extra-service', options: [] });
+      const dateF = field({ label: 'Date', name: 'extra-date', type: 'date', value: st.date!, min: today, max: addDays(today, salon.max_days_ahead) });
       const timeSel = select({ label: 'Time', name: 'extra-time', options: [] });
       let slots: { time: string; label: string }[] = [];
       const add = button('Add to my booking', { onClick: () => {
-        const q = others.find((o) => o.id === artistSel.input.value)!;
+        const q = bookable.find((o) => o.id === artistSel.input.value)!;
         const svc = q.services.find((x) => x.id === serviceSel.input.value);
         const sl = slots.find((x) => x.time === timeSel.input.value);
-        if (!svc || !sl) { mount(msg, notice('error', 'Please choose a service and a time.')); return; }
-        st.extra = [...st.extra, { pro: q, service: svc, time: sl.time, timeLabel: sl.label }]; st.idem = newIdempotencyKey(); render();
+        const date = dateF.input.value;
+        if (!svc || !sl || !date) { mount(msg, notice('error', 'Please choose a service, a date and a time.')); return; }
+        st.extra = [...st.extra, { pro: q, service: svc, date, time: sl.time, timeLabel: sl.label }]; st.idem = newIdempotencyKey(); render();
       } });
       const loadTimes = async () => {
         mount(msg);
-        const q = others.find((o) => o.id === artistSel.input.value)!;
-        const svcId = serviceSel.input.value;
-        timeSel.input.replaceChildren(h('option', { text: 'Loading times…' })); add.disabled = true;
+        const q = bookable.find((o) => o.id === artistSel.input.value)!;
+        const svcId = serviceSel.input.value; const date = dateF.input.value;
+        add.disabled = true;
+        if (!svcId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { timeSel.input.replaceChildren(h('option', { text: 'Choose a date' })); return; }
+        timeSel.input.replaceChildren(h('option', { text: 'Loading times…' }));
         try {
-          const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: q.slug, p_service: svcId, p_date: st.date, p_party: 1 }, { anon: true });
+          const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: q.slug, p_service: svcId, p_date: date, p_party: 1 }, { anon: true });
           if (!r.ok) throw new ApiError(r.error, r.message);
-          if (serviceSel.input.value !== svcId) return;
-          slots = r.slots as { time: string; label: string }[];
-          if (!slots.length) { timeSel.input.replaceChildren(h('option', { text: 'No times that day' })); mount(msg, notice('warn', `${q.display_name} has no free times on ${formatDateLong(st.date!)} for this service. Try another artist or service.`)); return; }
+          if (serviceSel.input.value !== svcId || dateF.input.value !== date) return;
+          // times already used by this booking for the same artist cannot be picked again
+          const taken = [{ pro: st.pro!, date: st.date!, time: st.time! }, ...st.extra.map((x) => ({ pro: x.pro, date: x.date, time: x.time }))]
+            .filter((x) => x.pro.id === q.id && x.date === date).map((x) => x.time);
+          slots = (r.slots as { time: string; label: string }[]).filter((x) => !taken.includes(x.time));
+          if (!slots.length) { timeSel.input.replaceChildren(h('option', { text: 'No times that day' })); mount(msg, notice('warn', `${q.display_name} has no free times on ${formatDateLong(date)} for this service. Try another date, artist or service.`)); return; }
           timeSel.input.replaceChildren(...slots.map((x) => h('option', { attrs: { value: x.time }, text: x.label })));
-          timeSel.input.value = slots.some((x) => x.time === st.time) ? st.time! : slots[0].time;
+          if (date === st.date && slots.some((x) => x.time === st.time)) timeSel.input.value = st.time!;
           add.disabled = false;
         } catch (e) { mount(msg, notice('error', (e as Error).message)); }
       };
       const fill = () => {
-        const q = others.find((o) => o.id === artistSel.input.value)!;
+        const q = bookable.find((o) => o.id === artistSel.input.value)!;
         serviceSel.input.replaceChildren(...q.services.filter((x) => x.bookable_online).map((x) => h('option', { attrs: { value: x.id }, text: `${x.name} (${durationLabel(x.duration_min)}, ${x.price_label})` })));
         void loadTimes();
       };
       artistSel.input.addEventListener('change', fill);
       serviceSel.input.addEventListener('change', () => void loadTimes());
+      dateF.input.addEventListener('change', () => void loadTimes());
       fill();
-      mount(box, h('div', { class: 'add-artist-form' }, artistSel.wrap, serviceSel.wrap, timeSel.wrap, msg,
+      mount(box, h('div', { class: 'add-artist-form' }, artistSel.wrap, serviceSel.wrap, dateF.wrap, timeSel.wrap, msg,
         h('div', { class: 'row-end' }, button('Cancel', { variant: 'ghost', onClick: () => mount(box, trigger()) }), add)));
     };
-    const trigger = () => h('div', null, h('p', { class: 'muted small', text: 'Want another service with a different artist, at the same time or one after the other? For example hair at 6:30, then hijab at 7:30.' }),
-      button('Add another artist', { variant: 'primary', icon: 'plus', onClick: open }));
+    const trigger = () => h('div', null, h('p', { class: 'muted small', text: 'Want another service too? Add it with the same artist or a different one, on this day or another day. For example hair today and makeup tomorrow.' }),
+      button('Add another service', { variant: 'primary', icon: 'plus', onClick: open }));
     mount(box, trigger());
     return box;
   }
@@ -320,7 +326,7 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         const r = st.extra.length
           ? await rpc<any>('salon_public_book_multi', { p_salon: SALON_SLUG, p_payload: { ...common, items: [
               { professional: p.slug, service: s.id, party_size: st.party },
-              ...st.extra.map((x) => ({ professional: x.pro.slug, service: x.service.id, party_size: 1, time: x.time }))] } }, { anon: true })
+              ...st.extra.map((x) => ({ professional: x.pro.slug, service: x.service.id, party_size: 1, date: x.date, time: x.time }))] } }, { anon: true })
           : await rpc<any>('salon_public_book', { p_salon: SALON_SLUG, p_payload: { ...common, professional: p.slug, service: s.id, party_size: st.party } }, { anon: true });
         if (!r.ok) {
           setBusy(submit, false);
@@ -346,8 +352,8 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
         st.party > 1 ? [h('dt', { text: 'People' }), h('dd', { text: String(st.party) })] : null,
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(st.date!)} at ${st.timeLabel} (UK time)` }),
         h('dt', { text: 'Price' }), h('dd', { text: st.party > 1 && s.price_kind !== 'enquire' ? `${s.price_label} each, ${st.party} people` : s.price_label }),
-        st.extra.map((x) => [h('dt', { text: `Also at ${x.timeLabel}` }),
-          h('dd', null, h('span', { text: `${x.service.name} with ${x.pro.display_name}, ${durationLabel(x.service.duration_min)}, ${x.service.price_label} ` }),
+        st.extra.map((x) => [h('dt', { text: 'Also booked' }),
+          h('dd', null, h('span', { text: `${x.service.name} with ${x.pro.display_name}, ${formatDateShort(x.date)} at ${x.timeLabel}, ${durationLabel(x.service.duration_min)}, ${x.service.price_label} ` }),
             button('Remove', { variant: 'link', onClick: () => { st.extra = st.extra.filter((y) => y !== x); st.idem = newIdempotencyKey(); render(); } }))]),
         h('dt', { text: 'Name' }), h('dd', { text: st.name }),
         h('dt', { text: 'Mobile' }), h('dd', { text: st.phone }),
