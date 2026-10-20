@@ -56,3 +56,9 @@ Huling update: 2026-10-14. Basahin muna ito, tapos `docs/BUILD_STATE.md` ("Round
 ## UPDATE 2026-10-15 (later)
 - Per-artist bank accounts are LIVE (migration 20261015030000). Owner sets them in Studio > Settings > Deposits.
 - Mohsin will create bookings@shahinaahmed.co.uk for notification emails. Next: set up the email provider ourselves (verify the domain via DNS: SPF/DKIM), use that address as sender, wire real sending (keys only in secure settings). SMS sender name still to be answered.
+
+## UPDATE 2026-10-20 (SMS done, site gated)
+- SMS WORKS END TO END: test text received on Mohsin's phone, sender "Shahina". Function `send-notifications` v6 + pg_cron `app-send-sms` live. `sms_connected` still false until Mohsin OKs the sender name and the toggles migration `20261020130000_sms_purpose_toggles.sql` is applied live (JG runs it in the SQL editor).
+- Website is behind a "Coming soon" gate (netlify.toml block `COMING SOON GATE`). Studio is also unreachable until the gate is removed.
+- Details and test counts: see BUILD_STATE "Round 8".
+- Remaining before go-live: (1) JG applies the toggles migration; (2) Mohsin OKs "Shahina" sender; (3) JG OK + run `supabase/ops/go_live_cleanup.sql` (check the 2 upcoming bookings first); (4) real emails for the 4 artist logins instead of @sample.com and new passwords (not 123456); (5) regenerate the SMS Works token (it was pasted in chat) and update the Supabase secret; (6) set `sms_connected = true`; (7) set booking_mode = live and remove the gate; (8) decide reminders (not built) and Stripe (optional phase 2).
