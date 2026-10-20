@@ -811,4 +811,18 @@ select pg_temp.check((:'m3'::jsonb)->>'error' = 'same_artist', 'M4 the same arti
 select pg_temp.check((:'m4'::jsonb)->>'error' = 'slot_taken' and (select count(*) from app.bookings) = :before_n,
   'M5 all or nothing: if one artist is busy nothing is booked for the others', :'m4'::jsonb);
 select pg_temp.check((:'m5'::jsonb)->>'error' = 'invalid_request', 'M6 a single item is not a multi booking', :'m5'::jsonb);
+
+-- ---- Round 9: owner-only delete of finished bookings
+reset role;
+\i ../../supabase/migrations/20261020150000_owner_delete_booking.sql
+select id as del_bk from app.bookings where ref = (:'m1'::jsonb)#>>'{bookings,0,ref}' \gset
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.check((public.salon_owner_booking_delete(:'del_bk'::uuid))->>'error' = 'forbidden', 'DEL1 a professional cannot delete bookings');
+select pg_temp.login(:'u_owner');
+select pg_temp.check((public.salon_owner_booking_delete(:'del_bk'::uuid))->>'error' = 'still_active', 'DEL2 an active booking must be cancelled first');
+select public.salon_dash_booking_action(:'del_bk'::uuid, 'cancel');
+select (public.salon_owner_booking_delete(:'del_bk'::uuid))->>'ok' as del_ok \gset
+reset role;
+select pg_temp.check(:'del_ok' = 'true' and not exists (select 1 from app.bookings where id = :'del_bk'::uuid), 'DEL3 owner deletes a cancelled booking');
+select pg_temp.check(exists (select 1 from app.audit_log where action = 'booking.deleted' and entity_id = :'del_bk'), 'DEL4 deletion is kept in the audit log');
 \echo ALL_TESTS_PASSED

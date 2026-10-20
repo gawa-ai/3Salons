@@ -56,7 +56,7 @@ export function quickActions(b: Booking, onDone: () => void) {
 
 const HISTORY_LABEL: Record<string, string> = {
   'booking.requested': 'Requested on the website', 'booking.created': 'Created in the studio', 'booking.confirmed': 'Confirmed',
-  'booking.declined': 'Declined', 'booking.cancelled': 'Cancelled', 'booking.completed': 'Marked completed', 'booking.no_show': 'Marked no-show',
+  'booking.declined': 'Declined', 'booking.deleted': 'Deleted', 'booking.cancelled': 'Cancelled', 'booking.completed': 'Marked completed', 'booking.no_show': 'Marked no-show',
   'booking.rescheduled': 'Moved', 'booking.reassigned': 'Moved to another professional', 'booking.reassigned_away': 'Moved to another professional',
   'booking.note': 'Studio note updated', 'booking.expired': 'Expired (not confirmed in time)',
   'booking.deposit_requested': 'Accepted, deposit requested', 'booking.deposit_received': 'Deposit received, confirmed', 'booking.deposit_expired': 'Expired (deposit not received)',
@@ -150,6 +150,14 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
     }
     if (started && ['confirmed', 'no_show'].includes(b.status)) buttons.push(button('Mark completed', { variant: 'secondary', onClick: () => act('complete', 'Mark completed') }));
     if (started && ['confirmed', 'completed'].includes(b.status)) buttons.push(button('Mark no-show', { variant: 'ghost', onClick: () => act('no_show', 'Mark no-show', { confirm: 'Record that the client did not attend.' }) }));
+    if (ctx.isOwner && ['cancelled', 'declined', 'expired', 'completed', 'no_show'].includes(b.status)) {
+      buttons.push(button('Delete', { variant: 'ghost', onClick: async () => {
+        const c = await confirmDialog({ title: 'Delete this booking?', message: `${b.client_name}, ${b.service} on ${b.when}. It is removed from the studio for good. The client is not told. A short record stays in the activity log.`, confirmLabel: 'Delete booking', danger: true });
+        if (!c.ok) return;
+        try { await rpc('salon_owner_booking_delete', { p_booking: b.id }); toast('Booking deleted'); d.close(); onChange(); }
+        catch (e) { toast((e as Error).message, 'error'); }
+      } }));
+    }
     mount(d.footer, buttons);
   };
   void load();

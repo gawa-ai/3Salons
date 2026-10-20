@@ -105,3 +105,4 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Multi-artist same-time booking: migration `20261020140000_multi_artist_booking.sql` (`salon_public_book_multi`, `bookings.group_id`), 2-3 artists, all-or-nothing, one private link each. UI: "Add another artist at the same time" on the Review step; done page shows one card per booking. DB tests M1-M6, e2e M-UI1..3 (50 e2e checks pass).
 - Migration must be applied live (paste in Supabase SQL editor).
 - Not built: reminders, SEO (needs address/phone), PWA, owner delete booking, Stripe/Apple Pay.
+- Owner-only Delete booking (`20261020150000_owner_delete_booking.sql`, `salon_owner_booking_delete`): only for cancelled/declined/expired/completed/no-show; active ones must be cancelled first; audit keeps a snapshot. Button "Delete" in the booking dialog (owner only).
