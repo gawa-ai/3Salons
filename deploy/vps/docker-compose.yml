@@ -20,7 +20,16 @@ services:
       retries: 3
     labels:
       - traefik.enable=true
-      - traefik.http.routers.shahina.rule=Host(`shahina.srv1991689.hstgr.cloud`)
+      - traefik.http.routers.shahina.rule=Host(`www.shahinaahmed.co.uk`) || Host(`shahina.srv1991689.hstgr.cloud`)
       - traefik.http.routers.shahina.entrypoints=websecure
       - traefik.http.routers.shahina.tls.certresolver=letsencrypt
       - traefik.http.services.shahina.loadbalancer.server.port=8080
+      # bare domain -> www
+      - traefik.http.routers.shahina-apex.rule=Host(`shahinaahmed.co.uk`)
+      - traefik.http.routers.shahina-apex.entrypoints=websecure
+      - traefik.http.routers.shahina-apex.tls.certresolver=letsencrypt
+      - traefik.http.routers.shahina-apex.service=shahina
+      - traefik.http.routers.shahina-apex.middlewares=shahina-www
+      - traefik.http.middlewares.shahina-www.redirectregex.regex=^https://shahinaahmed\\.co\\.uk/(.*)
+      - traefik.http.middlewares.shahina-www.redirectregex.replacement=https://www.shahinaahmed.co.uk/$${1}
+      - traefik.http.middlewares.shahina-www.redirectregex.permanent=true
