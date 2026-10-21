@@ -144,6 +144,7 @@ async function main() {
     await page.waitForSelector('.cal-day.has-slots');
     await page.locator('.cal-day.has-slots').nth(5).click();
     await page.waitForSelector('.slot');
+    const duoFirst = (await page.locator('.slot').first().textContent()).trim();
     await page.locator('.slot').first().click();
     await page.waitForSelector('input[name=name]');
     await page.fill('input[name=name]', 'Layla Duo');
@@ -157,6 +158,16 @@ async function main() {
     check(true, 'M-UI1 second artist added at the same time on the review step');
     await page.click('button:has-text("Add another service")');
     check((await page.locator('input[name=extra-date]').count()) === 1 && (await page.locator('select[name=extra-artist] option:checked').textContent()).includes('Sofia'), 'M-UI1b the form offers the same artist again, with its own date');
+    {
+      // same artist, same day: nothing that overlaps the first service may be offered
+      await page.waitForFunction(() => { const o = document.querySelectorAll('select[name=extra-time] option'); return o.length && !/Loading/.test(o[0].textContent); });
+      const dur = Number(sql(`select duration_min from app.services where name='Party Makeup' limit 1`));
+      const vals = await page.locator('select[name=extra-time] option').evaluateAll((o) => o.map((x) => x.value));
+      const mins = (t) => { const [a, b] = t.split(':').map(Number); return a * 60 + b; };
+      const m = duoFirst.match(/(\d+):(\d+)\s*(am|pm)/i);
+      const start = ((Number(m[1]) % 12) + (m[3].toLowerCase() === 'pm' ? 12 : 0)) * 60 + Number(m[2]);
+      check(vals.length > 0 && vals.every((v) => !(mins(v) < start + dur && mins(v) + dur > start)), 'M-UI1c same artist, same day: times overlapping the first service are hidden (' + duoFirst + ', ' + dur + ' min)');
+    }
     await page.click('button:has-text("Cancel")');
     await page.click('button:has-text("Send booking request")');
     await page.waitForSelector('text=Your requests have been sent');

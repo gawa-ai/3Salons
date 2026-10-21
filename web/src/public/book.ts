@@ -281,13 +281,17 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
           const r = await rpc<any>('salon_public_slots', { p_salon: SALON_SLUG, p_professional: q.slug, p_service: svcId, p_date: date, p_party: 1 }, { anon: true });
           if (!r.ok) throw new ApiError(r.error, r.message);
           if (serviceSel.input.value !== svcId || dateF.input.value !== date) return;
-          // times already used by this booking for the same artist cannot be picked again
-          const taken = [{ pro: st.pro!, date: st.date!, time: st.time! }, ...st.extra.map((x) => ({ pro: x.pro, date: x.date, time: x.time }))]
-            .filter((x) => x.pro.id === q.id && x.date === date).map((x) => x.time);
-          slots = (r.slots as { time: string; label: string }[]).filter((x) => !taken.includes(x.time));
+          // the same artist cannot be in two places: hide every time that overlaps a service already in this booking
+          const svc = q.services.find((x) => x.id === svcId);
+          const dur = svc ? svc.duration_min : 0;
+          const used = [{ pro: st.pro!, date: st.date!, time: st.time!, min: st.service!.duration_min * st.party }, ...st.extra.map((x) => ({ pro: x.pro, date: x.date, time: x.time, min: x.service.duration_min }))]
+            .filter((x) => x.pro.id === q.id && x.date === date);
+          slots = (r.slots as { time: string; label: string }[]).filter((sl) => {
+            const a = minutesOf(sl.time);
+            return !used.some((u) => { const b = minutesOf(u.time); return a < b + u.min && a + dur > b; });
+          });
           if (!slots.length) { timeSel.input.replaceChildren(h('option', { text: 'No times that day' })); mount(msg, notice('warn', `${q.display_name} has no free times on ${formatDateLong(date)} for this service. Try another date, artist or service.`)); return; }
           timeSel.input.replaceChildren(...slots.map((x) => h('option', { attrs: { value: x.time }, text: x.label })));
-          if (date === st.date && slots.some((x) => x.time === st.time)) timeSel.input.value = st.time!;
           add.disabled = false;
         } catch (e) { mount(msg, notice('error', (e as Error).message)); }
       };

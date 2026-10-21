@@ -16,6 +16,7 @@ PASS  P9 booking for Shirin created
 PASS  P10 private manage link shows provisional status
 PASS  M-UI1 second artist added at the same time on the review step
 PASS  M-UI1b the form offers the same artist again, with its own date
+PASS  M-UI1c same artist, same day: times overlapping the first service are hidden (10:00am, 60 min)
 PASS  M-UI2 two bookings, each with its own reference and private link
 PASS  M-UI3 both bookings saved and linked as one group
 PASS  P11 bridal enquiry sent
@@ -51,4 +52,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-52 checks passed
+53 checks passed
