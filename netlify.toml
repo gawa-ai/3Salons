@@ -10,6 +10,8 @@
   SUPABASE_URL = "https://vqkrvbtndnnxpcemkuce.supabase.co"
   SUPABASE_PUBLISHABLE_KEY = "sb_publishable__0EaCw7l1NKRnmOXEKl2Gg_2_g0I1KD"
   SALON_SLUG = "shahina-ahmed"
+  # Public half of the web-push key (safe in the browser). The private half is only an Edge Function secret.
+  VAPID_PUBLIC_KEY = "BBOV4d9tJmk-RNq3XEHlGd-4m70cNYHJawCWqyoYiN_ZPREFW8Ja0Wb-s1cs-2gruld1fIoyp-4rJxak1v-A1Yw"
 
 [[redirects]]
   from = "/*"
@@ -37,6 +39,19 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "application/manifest+json"
 
 [[headers]]
   for = "/index.html"

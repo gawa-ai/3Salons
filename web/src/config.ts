@@ -5,10 +5,13 @@ declare const __SUPABASE_URL__: string;
 declare const __SUPABASE_PUBLISHABLE_KEY__: string;
 declare const __SALON_SLUG__: string;
 declare const __BUILD_ID__: string;
+declare const __VAPID_PUBLIC_KEY__: string;
 
 export const SUPABASE_URL = __SUPABASE_URL__;
 export const SUPABASE_KEY = __SUPABASE_PUBLISHABLE_KEY__;
 export const SALON_SLUG = __SALON_SLUG__;
 export const BUILD_ID = __BUILD_ID__;
+/** Public half of the web-push key pair. The private half only exists as an Edge Function secret. */
+export const VAPID_PUBLIC_KEY = __VAPID_PUBLIC_KEY__;
 export const PORTFOLIO_BUCKET = 'portfolio';
 export const TIMEZONE = 'Europe/London';

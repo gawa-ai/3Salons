@@ -1,3 +1,4 @@
+import { alertsPanel } from './alerts';
 import { h, icon, mount, append } from '../lib/dom';
 import { button, spinner, emptyState, field, textarea, select, checkbox, toast, openDialog, setBusy, proDot, notice, confirmDialog, errorBox } from '../lib/ui';
 import { rpc, uploadFile, removeFile, publicStorageUrl, updatePassword, signOut } from '../lib/supabase';
@@ -478,6 +479,7 @@ export async function accountPage(ctx: Ctx) {
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Your account' }),
       h('dl', { class: 'kv' }, h('dt', { text: 'Email' }), h('dd', { text: ctx.me.user.email }),
         h('dt', { text: 'Access' }), h('dd', { text: ctx.isOwner ? 'Owner: all professionals' : `${ctx.ownPro?.display_name ?? 'Professional'}: own bookings and clients only` }))),
+    alertsPanel(ctx),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Change password' }), f1.wrap, f2.wrap, h('div', { class: 'row-end' }, save)),
     h('section', { class: 'panel' }, h('h3', { class: 'panel-title', text: 'Sign out' }),
       h('p', { class: 'muted small', text: 'Signing out clears your studio data from this browser.' }),

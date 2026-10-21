@@ -20,8 +20,14 @@ PASS  M-UI1c same artist, same day: times overlapping the first service are hidd
 PASS  M-UI2 two bookings, each with its own reference and private link
 PASS  M-UI3 both bookings saved and linked as one group
 PASS  P11 bridal enquiry sent
+PASS  APP1 the public site (home, booking) has no app manifest and no service worker
 PASS  O1 signed-out visitor is redirected away from the studio
+PASS  APP2 the Studio sign-in page offers the app manifest
 PASS  O2 owner sees the All professionals selector
+PASS  APP3 the Studio manifest is valid, standalone, starts at /studio and its icons exist
+PASS  APP4 service worker shows alerts only and has no fetch/caching handler
+PASS  APP5 owner is offered a one-tap "Turn on alerts" on the overview
+PASS  APP6 the Account page has an "Alerts on this phone" panel with a Turn on button
 PASS  O3 owner "Needs confirming" shows both pending requests
 PASS  O4 owner day calendar has one column per professional
 PASS  O4b owner month view shows the month with coloured bookings
@@ -52,4 +58,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-53 checks passed
+59 checks passed

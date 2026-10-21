@@ -189,9 +189,17 @@ async function main() {
     // ------------------------------------------------------------------ owner provisioning + master dashboard
     const ownerCode = sql(`select app.create_owner_invitation('shahina-ahmed', 'owner@salon.test')`).match(/([A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4})/)[1];
     ({ ctx, page } = await newPage());
+    // the public website must not be installable: no manifest, no service worker
+    await page.goto(BASE + '/');
+    await page.waitForSelector('.pro-card');
+    await page.goto(BASE + '/book'); await page.waitForTimeout(300);
+    check((await page.locator('link[rel=manifest]').count()) === 0 && (await page.locator('meta[name=apple-mobile-web-app-capable]').count()) === 0
+      && (await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)) === 0,
+      'APP1 the public site (home, booking) has no app manifest and no service worker');
     await page.goto(BASE + '/studio');
     await page.waitForURL('**/signin');
     check(true, 'O1 signed-out visitor is redirected away from the studio');
+    check((await page.locator('link[rel=manifest]').count()) === 1, 'APP2 the Studio sign-in page offers the app manifest');
     await shot(page, 'desktop-signin', false);
     await page.goto(BASE + '/join');
     await page.fill('input[name=code]', ownerCode);
@@ -202,6 +210,20 @@ async function main() {
     await page.waitForURL('**/studio');
     await page.waitForSelector('.tiles');
     check(await page.locator('.scope-btn', { hasText: 'All professionals' }).isVisible(), 'O2 owner sees the All professionals selector');
+    {
+      const man = await page.evaluate(async () => { const r = await fetch('/manifest.webmanifest'); return { ct: r.headers.get('content-type'), j: await r.json() }; });
+      const icons = await Promise.all(man.j.icons.map((i) => page.evaluate(async (u) => (await fetch(u)).status, i.src)));
+      check(man.j.start_url === '/studio' && man.j.display === 'standalone' && man.j.icons.length === 3 && icons.every((x) => x === 200)
+        && /manifest\+json/.test(man.ct), 'APP3 the Studio manifest is valid, standalone, starts at /studio and its icons exist', man);
+      const sw = await page.evaluate(async () => { const r = await fetch('/sw.js'); const t = await r.text(); return { s: r.status, hasFetch: /addEventListener\('fetch'/.test(t), hasPush: /addEventListener\('push'/.test(t) }; });
+      check(sw.s === 200 && sw.hasPush && !sw.hasFetch, 'APP4 service worker shows alerts only and has no fetch/caching handler', sw);
+      check((await page.locator('.alerts-banner').count()) === 1, 'APP5 owner is offered a one-tap "Turn on alerts" on the overview');
+    }
+    await page.goto(BASE + '/studio/account');
+    await page.waitForSelector('text=Alerts on this phone');
+    check((await page.locator('button:has-text("Turn on alerts")').count()) === 1, 'APP6 the Account page has an "Alerts on this phone" panel with a Turn on button');
+    await page.goto(BASE + '/studio');
+    await page.waitForSelector('.tiles');
     check((await page.locator('.blist .brow').count()) === 2, 'O3 owner "Needs confirming" shows both pending requests');
     await page.waitForTimeout(300);
     await shot(page, 'desktop-owner-overview');

@@ -1,8 +1,13 @@
-// Drains queued SMS from app.notifications and sends via The SMS Works.
-// Secrets (Supabase > Edge Functions > Secrets): SMSWORKS_JWT, SMS_SENDER.
+// Drains queued SMS from app.notifications (via The SMS Works) and queued web-push alerts from app.push_outbox.
+// Secrets (Supabase > Edge Functions > Secrets): SMSWORKS_JWT, SMS_SENDER, VAPID_PRIVATE_KEY.
+// (The VAPID public key and subject are not secret and are set below.)
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected by Supabase.
 // Safe to call at any time: it ignores the request body and only processes already-queued rows.
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
+
+const VAPID_PUBLIC_KEY = "BBOV4d9tJmk-RNq3XEHlGd-4m70cNYHJawCWqyoYiN_ZPREFW8Ja0Wb-s1cs-2gruld1fIoyp-4rJxak1v-A1Yw";
+const VAPID_SUBJECT = "https://www.shahinaahmed.co.uk";
 
 const SEND_URL = "https://api.thesmsworks.co.uk/v1/message/send";
 
@@ -37,17 +42,54 @@ function shape(j: string): string {
   return `len=${j.length} dots=${p.length - 1} ws=${/\s/.test(j)} quote=${/["']/.test(j)} iat=${iat}`;
 }
 
-Deno.serve(async () => {
-  const jwt = Deno.env.get("SMSWORKS_JWT");
-  const sender = Deno.env.get("SMS_SENDER");
-  if (!jwt || !sender) return Response.json({ ok: false, error: "missing_secrets" }, { status: 500 });
+type PushItem = { id: number; title: string; body: string; url: string; tag: string | null; subs: { id: number; endpoint: string; p256dh: string; auth: string }[] };
 
+// Web push to the Studio phones. Never throws: a push problem must not stop the SMS part.
+// deno-lint-ignore no-explicit-any
+async function drainPush(db: { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: { message: string } | null }> }) {
+  const priv = Deno.env.get("VAPID_PRIVATE_KEY");
+  if (!priv) return { configured: false };
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, priv);
+    const { data, error } = await db.rpc("push_claim", { p_limit: 10 });
+    if (error) return { configured: true, error: "claim_failed", detail: error.message };
+    let sent = 0, failed = 0;
+    for (const it of (data ?? []) as PushItem[]) {
+      const payload = JSON.stringify({ title: it.title, body: it.body, url: it.url, tag: it.tag });
+      const results = await Promise.all(it.subs.map(async (sub) => {
+        try {
+          const r = await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload, { TTL: 6 * 3600, urgency: "high", timeout: 10000 });
+          return { sub_id: sub.id, status: r.statusCode };
+        } catch (e) {
+          const err = e as { statusCode?: number; body?: string; message?: string };
+          return { sub_id: sub.id, status: err.statusCode ?? null, error: String(err.body || err.message || "error").slice(0, 200) };
+        }
+      }));
+      if (results.some((r) => r.status !== null && r.status >= 200 && r.status < 300)) sent++; else failed++;
+      const { error: e2 } = await db.rpc("push_complete", { p_id: it.id, p_results: results });
+      if (e2) console.error("push_complete_failed", it.id, e2.message);
+    }
+    return { configured: true, claimed: (data ?? []).length, sent, failed };
+  } catch (e) {
+    console.error("push_failed", (e as Error).message);
+    return { configured: true, error: "push_exception", detail: (e as Error).message.slice(0, 200) };
+  }
+}
+
+Deno.serve(async () => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },
   });
+  const push = await drainPush(db);
+
+  const jwt = Deno.env.get("SMSWORKS_JWT");
+  const sender = Deno.env.get("SMS_SENDER");
+  if (!jwt || !sender) return Response.json({ ok: false, error: "missing_secrets", push }, { status: 500 });
 
   const { data, error } = await db.rpc("sms_claim", { p_limit: 10 });
-  if (error) return Response.json({ ok: false, error: "claim_failed", detail: error.message }, { status: 500 });
+  if (error) return Response.json({ ok: false, error: "claim_failed", detail: error.message, push }, { status: 500 });
 
   const counts = { sent: 0, failed: 0, retry: 0, skipped: 0 };
   const done = async (id: number, outcome: keyof typeof counts, providerId?: string, err?: string) => {
@@ -100,5 +142,5 @@ Deno.serve(async () => {
     }
   }
 
-  return Response.json({ ok: true, claimed: (data ?? []).length, ...counts });
+  return Response.json({ ok: true, claimed: (data ?? []).length, ...counts, push });
 });

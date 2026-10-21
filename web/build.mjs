@@ -9,6 +9,8 @@ const SUPABASE_URL = env('SUPABASE_URL', 'https://vqkrvbtndnnxpcemkuce.supabase.
 // Publishable (public) key. It can only call what the database grants to `anon`.
 const SUPABASE_KEY = env('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable__0EaCw7l1NKRnmOXEKl2Gg_2_g0I1KD');
 const SALON = env('SALON_SLUG', 'shahina-ahmed');
+// Public key for web push (safe in the browser). The private key is only an Edge Function secret.
+const VAPID_PUBLIC = env('VAPID_PUBLIC_KEY', 'BBOV4d9tJmk-RNq3XEHlGd-4m70cNYHJawCWqyoYiN_ZPREFW8Ja0Wb-s1cs-2gruld1fIoyp-4rJxak1v-A1Yw');
 if (/service_role|sb_secret_/i.test(SUPABASE_KEY)) throw new Error('Refusing to build with a secret key.');
 
 rmSync('dist', { recursive: true, force: true });
@@ -26,6 +28,7 @@ const result = await build({
     __SUPABASE_PUBLISHABLE_KEY__: JSON.stringify(SUPABASE_KEY),
     __SALON_SLUG__: JSON.stringify(SALON),
     __BUILD_ID__: JSON.stringify(buildId),
+    __VAPID_PUBLIC_KEY__: JSON.stringify(VAPID_PUBLIC),
   },
   logLevel: 'warning',
 });

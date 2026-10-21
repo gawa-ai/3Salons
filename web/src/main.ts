@@ -10,6 +10,7 @@ import { artistPage } from './public/artist';
 import { bookPage } from './public/book';
 import { bridalPage, managePage, privacyPage } from './public/forms';
 import { publicShell } from './public/layout';
+import { syncAppMode } from './lib/pwa';
 import { signInPage, joinPage, forgotPage, resetPage } from './auth/pages';
 import { studio } from './studio/shell';
 import { overviewPage } from './studio/overview';
@@ -19,7 +20,8 @@ import { servicesPage, availabilityPage, galleryPage, reportsPage, teamPage, set
 
 const app = document.getElementById('app')!;
 
-onNavigate(() => {
+onNavigate((path) => {
+  syncAppMode(path);
   document.querySelectorAll('.dialog-backdrop').forEach((d) => d.remove());
   document.body.classList.remove('no-scroll');
   window.scrollTo({ top: 0 });

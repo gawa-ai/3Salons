@@ -165,8 +165,16 @@ export async function accessToken(): Promise<string | null> {
   return session.access_token;
 }
 
+const beforeSignOut = new Set<() => Promise<void>>();
+/** Run something while the user is still signed in, just before sign-out (e.g. switch off phone alerts). */
+export function onBeforeSignOut(fn: () => Promise<void>) { beforeSignOut.add(fn); }
+
 export async function signOut(): Promise<void> {
   const token = session?.access_token;
+  if (token && beforeSignOut.size) {
+    // never let a hook keep someone from signing out
+    await Promise.race([Promise.allSettled([...beforeSignOut].map((fn) => fn())), new Promise((r) => setTimeout(r, 3000))]);
+  }
   save(null);
   if (token) {
     try { await authFetch('/logout?scope=local', { method: 'POST', token }); } catch { /* already signed out locally */ }

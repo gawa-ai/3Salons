@@ -3,6 +3,7 @@ import { button, linkButton, emptyState, notice, spinner } from '../lib/ui';
 import { rpc } from '../lib/supabase';
 import { pounds, formatDateLong, time12 } from '../lib/format';
 import type { Ctx } from './shell';
+import { alertsBanner } from './alerts';
 import { bookingRow, quickActions, openBooking, openNewBooking, type Booking } from './booking';
 
 export async function overviewPage(ctx: Ctx) {
@@ -18,10 +19,13 @@ export async function overviewPage(ctx: Ctx) {
       h(href ? 'a' : 'div', { class: ['tile', tone], attrs: href ? { href } : {} },
         h('p', { class: 'tile-label', text: label }), h('p', { class: 'tile-value', text: value }), h('p', { class: 'tile-sub', text: sub }));
 
+    const alertSlot = h('div');
+    void alertsBanner(ctx).then((n) => { if (n) mount(alertSlot, n); }).catch(() => {});
     mount(ctx.content,
       h('div', { class: 'greeting' },
         h('p', { class: 'greet-date', text: formatDateLong(r.today) }),
         h('h2', { class: 'greet-title', text: ctx.isOwner ? (ctx.scope ? `${ctx.proById(ctx.scope)?.display_name}’s day` : 'The studio today') : 'Your day' })),
+      alertSlot,
       h('div', { class: 'tiles' },
         tile('Today', String(today.length), today.length === 1 ? 'appointment' : 'appointments', '/studio/calendar'),
         tile('Awaiting confirmation', String(c.pending), c.pending ? 'requests need your answer' : 'nothing waiting', '/studio/bookings?view=pending', c.pending ? 'tile-attention' : ''),

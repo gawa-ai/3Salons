@@ -7,7 +7,7 @@ import path from 'node:path';
 const ROOT = path.resolve(process.argv[2] || 'web/dist');
 const PORT = Number(process.argv[3] || 4173);
 const API = process.argv[4] || 'http://localhost:54321';
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.woff': 'font/woff', '.txt': 'text/plain', '.json': 'application/json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.woff': 'font/woff', '.txt': 'text/plain', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 const CSP = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: ${API}; media-src 'self' blob: ${API}; font-src 'self'; connect-src 'self' ${API}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'`;
 
 http.createServer((req, res) => {

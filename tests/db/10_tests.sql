@@ -389,8 +389,11 @@ select pg_temp.check((select status from app.bookings where ref = 'PASTPD') = 'e
 
 -- ---------------------------------------------------------------- 10. DST (Europe/London)
 set role authenticated; select pg_temp.login(:'u_owner');
-select pg_temp.check(jsonb_array_length((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2026-10-25'))->'slots') = 29
-  and jsonb_array_length((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2027-03-28'))->'slots') = 29,
+-- (the grid is judged by its first/last slot, not by a fixed count, because earlier tests may already hold bookings on these dates)
+select pg_temp.check((select count(*) > 0 and min(x->>'time') >= '10:00' and max(x->>'time') <= '17:45' and bool_and((x->>'time') ~ ':(00|15|30|45)$')
+                        from jsonb_array_elements((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2026-10-25'))->'slots') x)
+  and (select count(*) > 0 and min(x->>'time') >= '10:00' and max(x->>'time') <= '17:45' and bool_and((x->>'time') ~ ':(00|15|30|45)$')
+                        from jsonb_array_elements((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2027-03-28'))->'slots') x),
   '109 clock-change Sundays (Oct + Mar) keep a normal 10:00-18:00 grid');
 select (public.salon_dash_booking_create(:'salon', jsonb_build_object('professional_id', :'p_shirin', 'service_id', :'s_shirin_hair',
   'date', '2026-10-25', 'time', '10:00', 'name', 'Dst Test', 'phone', '07700 901000')))#>>'{booking,id}' as dst1 \gset
@@ -901,4 +904,131 @@ select pg_temp.check((select count(*) = 2 and bool_and(status = 'confirmed' and 
 select pg_temp.check((select count(*) = 1 and bool_and(body like '%30%' and body like '%confirmed%') from app.notifications where purpose = 'deposit_received' and booking_id in (:'gd1', :'gd2')),
   'GD4 one thank-you text for the whole group',
   (select jsonb_agg(body) from app.notifications where purpose = 'deposit_received' and booking_id in (:'gd1', :'gd2')));
+
+-- ---------------------------------------------------------------- web push (PU)
+insert into app.memberships (user_id, salon_id, role, professional_id, status, display_name)
+  select :'u_shirin', :'salon', 'professional', :'p_shirin', 'active', 'Shirin'
+  where not exists (select 1 from app.memberships where salon_id = :'salon' and professional_id = :'p_shirin' and status = 'active');
+select pg_temp.check((select count(*) from app.push_outbox where purpose = 'new_request' and title = 'New booking request' and url = '/studio/bookings?view=pending') > 0,
+  'PU0 a booking request queued a push alert through the trigger');
+update app.push_outbox set status = 'skipped';
+
+create or replace function pg_temp.sub(p_ep text) returns jsonb language sql as $$
+  select jsonb_build_object('endpoint', p_ep, 'keys', jsonb_build_object('p256dh', repeat('B', 87), 'auth', repeat('C', 22)))
+$$;
+grant execute on function pg_temp.sub(text) to anon, authenticated, service_role;
+
+set role anon; select pg_temp.login(null);
+select pg_temp.check(pg_temp.q($$select public.push_subscribe('$$ || :'salon' || $$'::uuid, pg_temp.sub('https://fcm.googleapis.com/fcm/send/anon'), 'x')$$)->>'state' = '42501',
+  'PU1 visitors cannot register a device');
+select pg_temp.check(pg_temp.q('select public.push_claim(5)')->>'state' = '42501', 'PU1b visitors cannot read the push queue');
+reset role; set role authenticated; select pg_temp.login(:'u_owner');
+select pg_temp.check(pg_temp.q('select public.push_claim(5)')->>'state' = '42501', 'PU1c studio logins cannot read the push queue either');
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('https://fcm.googleapis.com/fcm/send/owner-device-1'), 'OwnerUA') as pu2 \gset
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('https://fcm.googleapis.com.evil.example/fcm/send/x'), 'x') as pu2b \gset
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('http://fcm.googleapis.com/fcm/send/plain'), 'x') as pu2c \gset
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('https://169.254.169.254/latest/meta-data'), 'x') as pu2d \gset
+select public.push_status(:'salon'::uuid, 'https://fcm.googleapis.com/fcm/send/owner-device-1') as pu2e \gset
+reset role;
+select pg_temp.check((:'pu2'::jsonb)->>'ok' = 'true', 'PU2 owner registers a phone', :'pu2'::jsonb);
+select pg_temp.check((:'pu2b'::jsonb)->>'error' = 'invalid_subscription' and (:'pu2c'::jsonb)->>'error' = 'invalid_subscription' and (:'pu2d'::jsonb)->>'error' = 'invalid_subscription',
+  'PU3 only real push-service addresses are accepted (no look-alike host, no http, no internal address)');
+select pg_temp.check((:'pu2e'::jsonb)->>'this_device' = 'true' and ((:'pu2e'::jsonb)->>'devices')::int = 1, 'PU3b status reports this device', :'pu2e'::jsonb);
+
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('https://fcm.googleapis.com/fcm/send/sofia-device-1'), 'SofiaUA') as pu4 \gset
+reset role; set role authenticated; select pg_temp.login(:'u_shirin');
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('https://web.push.apple.com/shirin-device-1'), 'ShirinUA') as pu4b \gset
+reset role;
+select pg_temp.check((:'pu4'::jsonb)->>'ok' = 'true' and (:'pu4b'::jsonb)->>'ok' = 'true', 'PU4 artists register their phones', jsonb_build_array(:'pu4'::jsonb, :'pu4b'::jsonb));
+
+-- routing: an alert about Sofia reaches the owner and Sofia, never Shirin
+insert into app.push_outbox (salon_id, professional_id, purpose, title, body, url, tag) values
+  (:'salon', :'p_sofia', 'new_request', 'PU Sofia alert', 'Party Makeup · Sat · Test', '/studio/bookings?view=pending', 'pu-s'),
+  (:'salon', :'p_shirin', 'new_request', 'PU Shirin alert', 'Party Makeup · Sat · Test', '/studio/bookings?view=pending', 'pu-sh');
+set role service_role;
+select public.push_claim(25) as pc \gset
+reset role;
+select pg_temp.check((select count(*) from jsonb_array_elements(:'pc'::jsonb)) = 2, 'PU5 two alerts claimed', :'pc'::jsonb);
+select pg_temp.check(
+  (select array_agg(e->>'endpoint' order by e->>'endpoint') from jsonb_array_elements(:'pc'::jsonb) x, jsonb_array_elements(x->'subs') e where x->>'title' = 'PU Sofia alert')
+    = array['https://fcm.googleapis.com/fcm/send/owner-device-1', 'https://fcm.googleapis.com/fcm/send/sofia-device-1'],
+  'PU6 an alert about Sofia goes to the owner and to Sofia only');
+select pg_temp.check(
+  (select array_agg(e->>'endpoint' order by e->>'endpoint') from jsonb_array_elements(:'pc'::jsonb) x, jsonb_array_elements(x->'subs') e where x->>'title' = 'PU Shirin alert')
+    = array['https://fcm.googleapis.com/fcm/send/owner-device-1', 'https://web.push.apple.com/shirin-device-1'],
+  'PU7 an alert about Shirin goes to the owner and to Shirin only');
+select id as sub_owner from app.push_subscriptions where endpoint like '%owner-device-1' \gset
+select id as sub_sofia from app.push_subscriptions where endpoint like '%sofia-device-1' \gset
+select (x->>'id')::bigint as ob_sofia from jsonb_array_elements(:'pc'::jsonb) x where x->>'title' = 'PU Sofia alert' \gset
+set role service_role;
+select public.push_complete(:ob_sofia, jsonb_build_array(jsonb_build_object('sub_id', :sub_owner, 'status', 201), jsonb_build_object('sub_id', :sub_sofia, 'status', 410)));
+select count(*) as reclaimed from jsonb_array_elements(public.push_claim(25)) x where x->>'title' = 'PU Sofia alert' \gset
+reset role;
+select pg_temp.check((select status from app.push_outbox where id = :ob_sofia) = 'sent' and :reclaimed = 0, 'PU8 delivered to one phone = sent, and not sent again');
+select pg_temp.check(not (select active from app.push_subscriptions where id = :sub_sofia) and (select active from app.push_subscriptions where id = :sub_owner),
+  'PU9 a phone that removed its subscription (410) is switched off, the others stay on');
+-- turning it back on from the phone re-activates the same device
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.push_subscribe(:'salon'::uuid, pg_temp.sub('https://fcm.googleapis.com/fcm/send/sofia-device-1'), 'SofiaUA') as pu10 \gset
+reset role;
+select pg_temp.check((select active from app.push_subscriptions where id = :sub_sofia), 'PU10 turning notifications on again re-activates the device');
+
+-- test alert goes only to the person who asked
+update app.push_outbox set status = 'skipped' where status = 'queued';
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.push_test(:'salon'::uuid) as pu11 \gset
+reset role;
+set role service_role;
+select public.push_claim(25) as pc2 \gset
+reset role;
+select pg_temp.check((:'pu11'::jsonb)->>'ok' = 'true' and (select count(*) from jsonb_array_elements(:'pc2'::jsonb)) = 1
+  and (select count(*) from jsonb_array_elements(:'pc2'::jsonb) x, jsonb_array_elements(x->'subs') e) = 1
+  and (select e->>'endpoint' from jsonb_array_elements(:'pc2'::jsonb) x, jsonb_array_elements(x->'subs') e) = 'https://fcm.googleapis.com/fcm/send/sofia-device-1',
+  'PU11 "send me a test" reaches only the caller''s own phone', :'pc2'::jsonb);
+-- temporary provider errors are retried, then given up after 3 tries
+select (x->>'id')::bigint as ob_test from jsonb_array_elements(:'pc2'::jsonb) x \gset
+set role service_role;
+select public.push_complete(:ob_test, jsonb_build_array(jsonb_build_object('sub_id', :sub_sofia, 'status', 503)));
+reset role;
+select pg_temp.check((select status = 'queued' and next_attempt_at > now() from app.push_outbox where id = :ob_test), 'PU12 a 503 is retried later');
+update app.push_outbox set next_attempt_at = null where id = :ob_test;
+set role service_role;
+select count(*) as c2 from jsonb_array_elements(public.push_claim(25)) \gset
+reset role;
+set role service_role;
+select public.push_complete(:ob_test, jsonb_build_array(jsonb_build_object('sub_id', :sub_sofia, 'status', 503)));
+reset role;
+update app.push_outbox set next_attempt_at = null where id = :ob_test;
+set role service_role;
+select count(*) as c3 from jsonb_array_elements(public.push_claim(25)) \gset
+reset role;
+set role service_role;
+select public.push_complete(:ob_test, jsonb_build_array(jsonb_build_object('sub_id', :sub_sofia, 'status', 503)));
+reset role;
+select pg_temp.check((select status from app.push_outbox where id = :ob_test) = 'failed' and :c2 = 1 and :c3 = 1, 'PU13 after 3 failed tries the alert is marked failed');
+-- a test-alert flood is limited
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.push_test(:'salon'::uuid) as t2 \gset
+select public.push_test(:'salon'::uuid) as t3 \gset
+select public.push_test(:'salon'::uuid) as t4 \gset
+select public.push_test(:'salon'::uuid) as t5 \gset
+select public.push_test(:'salon'::uuid) as t6 \gset
+reset role;
+select pg_temp.check((:'t6'::jsonb)->>'error' = 'too_many_tests', 'PU14 test alerts are limited per hour', :'t6'::jsonb);
+-- unsubscribe only removes your own device
+set role authenticated; select pg_temp.login(:'u_shirin');
+select public.push_unsubscribe('https://fcm.googleapis.com/fcm/send/sofia-device-1') as pu15 \gset
+reset role;
+select pg_temp.check(exists (select 1 from app.push_subscriptions where id = :sub_sofia), 'PU15 nobody can remove another person''s device');
+set role authenticated; select pg_temp.login(:'u_sofia');
+select public.push_unsubscribe('https://fcm.googleapis.com/fcm/send/sofia-device-1') as pu16 \gset
+reset role;
+select pg_temp.check(not exists (select 1 from app.push_subscriptions where id = :sub_sofia), 'PU16 signing out removes your own device');
+-- the trigger can never block a booking, even if the alert table breaks
+alter table app.push_outbox rename to push_outbox_x;
+select pg_temp.check(pg_temp.q($$insert into app.notifications (salon_id, professional_id, audience, channel, purpose, body, status, dedupe_key)
+  values ('$$ || :'salon' || $$', null, 'professional', 'sms', 'new_enquiry', 'x', 'skipped', 'pu-trigger-test') returning 1$$)->>'err' is null,
+  'PU17 a broken alert queue never stops a booking or enquiry from being saved');
+alter table app.push_outbox_x rename to push_outbox;
 \echo ALL_TESTS_PASSED
