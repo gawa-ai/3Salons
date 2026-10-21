@@ -30,6 +30,6 @@ services:
       - traefik.http.routers.shahina-apex.tls.certresolver=letsencrypt
       - traefik.http.routers.shahina-apex.service=shahina
       - traefik.http.routers.shahina-apex.middlewares=shahina-www
-      - traefik.http.middlewares.shahina-www.redirectregex.regex=^https://shahinaahmed\\.co\\.uk/(.*)
+      - traefik.http.middlewares.shahina-www.redirectregex.regex=^https://shahinaahmed\.co\.uk/(.*)
       - traefik.http.middlewares.shahina-www.redirectregex.replacement=https://www.shahinaahmed.co.uk/$${1}
       - traefik.http.middlewares.shahina-www.redirectregex.permanent=true
