@@ -10,6 +10,38 @@ let state = { date: todayLocal(), view: 'day' as 'day' | 'week' | 'month' };
 onPrivateClear(() => { state = { date: todayLocal(), view: 'day' }; });
 const PX = 1.15; // pixels per minute
 
+type OffRange = { s: number; e: number; reason: string | null; salon: boolean };
+const hm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+const localMin = (d: Date) => { const [a, b] = hm.format(d).split(':').map(Number); return a * 60 + b; };
+/** Time off (studio closed or one artist away) that touches `date`, as minutes of that local day. */
+function offRanges(sch: any, proId: string | null, date: string): OffRange[] {
+  const d0 = zonedToUtc(date, '00:00'); const d1 = zonedToUtc(addDays(date, 1), '00:00');
+  const rows: { x: any; salon: boolean }[] = [
+    ...(sch?.salon_time_off ?? []).map((x: any) => ({ x, salon: true })),
+    ...(proId ? (sch?.professionals ?? []).filter((p: any) => p.id === proId).flatMap((p: any) => (p.time_off ?? []).map((x: any) => ({ x, salon: false }))) : []),
+  ];
+  const out: OffRange[] = [];
+  for (const { x, salon } of rows) {
+    const a = new Date(x.starts_at); const b = new Date(x.ends_at);
+    if (b <= d0 || a >= d1) continue;
+    out.push({ s: a <= d0 ? 0 : localMin(a), e: b >= d1 ? 1440 : localMin(b), reason: x.reason ?? null, salon });
+  }
+  return out.filter((r) => r.e > r.s);
+}
+/** Short labels for a day, for month/agenda/week headers. `all` = owner looking at every artist. */
+function offLabels(sch: any, ctx: Ctx, proId: string | null, date: string): string[] {
+  const part = (r: OffRange[]) => (r.some((x) => x.s <= 0 && x.e >= 1440) ? '' : ' (part of day)');
+  const salon = offRanges(sch, null, date);
+  if (salon.length) return [`Studio closed${part(salon)}`];
+  if (proId) { const r = offRanges(sch, proId, date); return r.length ? [`Time off${part(r)}`] : []; }
+  const out: string[] = [];
+  for (const p of sch?.professionals ?? []) {
+    const r = offRanges(sch, p.id, date);
+    if (r.length) out.push(`${ctx.pros.find((x) => x.id === p.id)?.short_name ?? p.name} off${part(r)}`);
+  }
+  return out;
+}
+
 export async function calendarPage(ctx: Ctx) {
   const toolbar = h('div', { class: 'cal-toolbar' });
   const body = h('div', { class: 'cal-body' });
@@ -31,8 +63,8 @@ export async function calendarPage(ctx: Ctx) {
       rpc<any>('salon_dash_schedule', { p_salon: ctx.salonId, p_professional: ctx.scope }),
     ]);
     const items: Booking[] = bk.items;
-    if (state.view === 'month') { renderMonth(days, items); return; }
-    if (narrow()) { renderAgenda(days, items); return; }
+    if (state.view === 'month') { renderMonth(days, items, sch); return; }
+    if (narrow()) { renderAgenda(days, items, sch); return; }
     renderGrid(days, items, sch);
   };
 
@@ -81,7 +113,8 @@ export async function calendarPage(ctx: Ctx) {
       cols.map((c) => h('div', { class: ['cgrid-head', c.color && `pro-${c.color}`, c.date === today && state.view === 'week' && 'is-today'] },
         c.color ? h('span', { class: ['pro-dot', `pro-${c.color}`] }) : null,
         h('span', { text: c.title }),
-        h('span', { class: 'cgrid-count', text: String(items.filter((b) => b.local_date === c.date && (!c.pro || b.professional_id === c.pro)).length) }))),
+        h('span', { class: 'cgrid-count', text: String(items.filter((b) => b.local_date === c.date && (!c.pro || b.professional_id === c.pro)).length) }),
+        !c.pro ? offLabels(sch, ctx, null, c.date).map((t) => h('span', { class: 'cgrid-offnote', text: t })) : null)),
       h('div', { class: 'cgrid-axis', style: { height: `${height}px` } }, hours.map((m) => h('span', { class: 'cgrid-hour', style: { top: `${(m - lo) * PX}px` }, text: time12(`${String(m / 60).padStart(2, '0')}:00`) }))),
       cols.map((c) => {
         const col = h('div', { class: 'cgrid-col', style: { height: `${height}px` }, attrs: { 'aria-label': `${c.title}, ${formatDateLong(c.date)}` } });
@@ -93,10 +126,18 @@ export async function calendarPage(ctx: Ctx) {
           for (const [o, cl] of open) { if (o > cur) col.appendChild(h('div', { class: 'cgrid-off', style: { top: `${(cur - lo) * PX}px`, height: `${(o - cur) * PX}px` } })); cur = Math.max(cur, cl); }
           if (cur < hi) col.appendChild(h('div', { class: 'cgrid-off', style: { top: `${(cur - lo) * PX}px`, height: `${(hi - cur) * PX}px` } }));
         }
+        // time off / studio closed: a clear, labelled block on top of the shading
+        for (const r of offRanges(sch, c.pro, c.date)) {
+          const a = Math.max(r.s, lo); const b = Math.min(r.e, hi);
+          if (b <= a) continue;
+          const label = r.salon ? 'Studio closed' : 'Time off';
+          col.appendChild(h('div', { class: ['cgrid-timeoff', r.salon && 'is-salon'], style: { top: `${(a - lo) * PX}px`, height: `${(b - a) * PX}px` }, attrs: { role: 'note', 'aria-label': `${label}${r.reason ? ': ' + r.reason : ''}` } },
+            h('span', { class: 'cgrid-timeoff-label', text: r.reason ? `${label}: ${r.reason}` : label })));
+        }
         hours.forEach((m) => col.appendChild(h('div', { class: 'cgrid-line', style: { top: `${(m - lo) * PX}px` } })));
         // click empty space to add a booking at that time
         col.addEventListener('click', (e) => {
-          if ((e.target as Element).closest('.event')) return;
+          if ((e.target as Element).closest('.event, .cgrid-timeoff')) return;
           const rect = col.getBoundingClientRect();
           const mins = lo + Math.floor(((e as MouseEvent).clientY - rect.top) / PX / 15) * 15;
           const time = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
@@ -132,10 +173,11 @@ export async function calendarPage(ctx: Ctx) {
         h('span', null, h('span', { class: 'legend-swatch legend-pending' }), 'Awaiting confirmation'),
         h('span', null, h('span', { class: 'legend-swatch legend-confirmed' }), 'Confirmed'),
         h('span', null, h('span', { class: 'legend-swatch legend-off' }), 'Outside working hours'),
+        h('span', null, h('span', { class: 'legend-swatch legend-timeoff' }), 'Time off / studio closed'),
         h('span', { class: 'muted', text: 'Click an empty slot to add a booking.' })));
   }
 
-  function renderMonth(days: string[], items: Booking[]) {
+  function renderMonth(days: string[], items: Booking[], sch: any) {
     const today = todayLocal();
     const month = state.date.slice(0, 7);
     const MAX = narrow() ? 3 : 4;
@@ -143,9 +185,11 @@ export async function calendarPage(ctx: Ctx) {
       const list = items.filter((b) => b.local_date === d);
       const shown = list.slice(0, list.length > MAX ? MAX - 1 : MAX);
       const rest = list.length - shown.length;
-      return h('div', { class: ['mcell', d.slice(0, 7) !== month && 'is-out', d === today && 'is-today'] },
+      const off = offLabels(sch, ctx, ctx.scope, d);
+      return h('div', { class: ['mcell', d.slice(0, 7) !== month && 'is-out', d === today && 'is-today', off.length > 0 && 'has-off'] },
         h('button', { class: 'mcell-num', attrs: { type: 'button', 'aria-label': `${formatDateLong(d)}, ${list.length} appointment${list.length === 1 ? '' : 's'}. Open day` }, text: String(Number(d.slice(8))),
           on: { click: () => { state.date = d; state.view = 'day'; void load(); } } }),
+        off.map((t) => h('span', { class: 'moff', text: t, attrs: { title: t } })),
         shown.map((b) => h('button', { class: ['mchip', `pro-${b.professional_color}`, `st-${b.status}`], attrs: { type: 'button', title: `${time12(b.local_time)} ${b.client_name}, ${b.service}, ${b.professional_short}${b.status === 'pending' ? ' (awaiting confirmation)' : ''}` },
           text: `${narrow() ? '' : time12(b.local_time) + ' '}${b.client_name}`, on: { click: () => openBooking(ctx, b.id, () => void load()) } })),
         rest > 0 ? h('button', { class: 'mmore', attrs: { type: 'button' }, text: `${rest} more`, on: { click: () => { state.date = d; state.view = 'day'; void load(); } } }) : null);
@@ -156,16 +200,21 @@ export async function calendarPage(ctx: Ctx) {
       h('div', { class: 'cal-legend' },
         ctx.isOwner && !ctx.scope ? ctx.pros.map((p) => h('span', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), p.short_name ?? p.display_name)) : null,
         h('span', null, h('span', { class: 'legend-swatch legend-pending' }), 'Awaiting confirmation'),
+        h('span', null, h('span', { class: 'legend-swatch legend-timeoff' }), 'Time off / closed'),
         h('span', { class: 'muted', text: 'Tap a date to open that day.' })));
   }
 
-  function renderAgenda(days: string[], items: Booking[]) {
-    if (!items.length) { mount(body, emptyState(state.view === 'day' ? 'No appointments this day' : 'No appointments this week', 'Use New booking to add one.')); return; }
+  function renderAgenda(days: string[], items: Booking[], sch: any) {
+    const offDays = new Map(days.map((d) => [d, offLabels(sch, ctx, ctx.scope, d)] as [string, string[]]));
+    const anyOff = [...offDays.values()].some((v) => v.length);
+    if (!items.length && !anyOff) { mount(body, emptyState(state.view === 'day' ? 'No appointments this day' : 'No appointments this week', 'Use New booking to add one.')); return; }
     mount(body, h('div', { class: 'agenda-days' }, days.map((d) => {
       const list = items.filter((b) => b.local_date === d);
-      if (!list.length && state.view === 'week') return null;
+      const off = offDays.get(d) ?? [];
+      if (!list.length && !off.length && state.view === 'week') return null;
       return h('section', { class: 'agenda-day' },
         h('h3', { class: 'agenda-day-title', text: formatDateLong(d) }),
+        off.map((t) => h('p', { class: 'agenda-off', text: t })),
         list.length ? h('ol', { class: 'agenda' }, list.map((b) => h('li', { class: ['agenda-item', `pro-${b.professional_color}`, `st-${b.status}`] },
           h('button', { class: 'agenda-btn', attrs: { type: 'button' }, on: { click: () => openBooking(ctx, b.id, () => void load()) } },
             h('span', { class: 'agenda-time', text: `${time12(b.local_time)}–${time12(b.local_end)}` }),

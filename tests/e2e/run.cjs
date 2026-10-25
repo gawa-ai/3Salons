@@ -233,11 +233,23 @@ async function main() {
     await page.waitForSelector('.event');
     check((await page.locator('.cgrid-head').count()) === 4, 'O4 owner day calendar has one column per professional');
     await shot(page, 'desktop-owner-calendar-day', false);
+    // time off must be clearly visible (labelled, strong block), not just the pale "outside hours" shading
+    sql(`insert into app.time_off (salon_id, professional_id, starts_at, ends_at, reason) select p.salon_id, p.id, (('${bd}'::date - 1)::timestamp + time '00:00') at time zone 'Europe/London', (('${bd}'::date + 1)::timestamp + time '23:59') at time zone 'Europe/London', 'Holiday' from app.professionals p where p.slug = 'sofia-mua'`);
+    await page.reload(); await page.waitForSelector('.cgrid');
+    await page.fill('input.cal-date', bd); await page.dispatchEvent('input.cal-date', 'change');
+    await page.waitForSelector('.cgrid-head');
+    check((await page.locator('.cgrid-timeoff').count()) >= 1 && /Time off: Holiday/.test(await page.locator('.cgrid-timeoff-label').first().innerText()), 'TO1 day calendar shows a labelled "Time off" block for an artist who is away');
+    const offBg = await page.locator('.cgrid-timeoff').first().evaluate((el) => getComputedStyle(el).backgroundImage);
+    check(/rgb\(203, 182, 166\)|rgb\(216, 198, 184\)/.test(offBg), 'TO2 the time-off block uses the strong colour, not the pale off-hours shade', offBg);
+    await shot(page, 'desktop-owner-calendar-timeoff', false);
     await page.click('.seg-btn:has-text("Week")');
     await page.waitForSelector('.cgrid-week');
+    check((await page.locator('.cgrid-offnote').count()) >= 1, 'TO3 week view (all artists) names who is off in the day header');
     await shot(page, 'desktop-owner-calendar-week', false);
     await page.click('.seg-btn:has-text("Month")');
     await page.waitForSelector('.mgrid');
+    check((await page.locator('.mcell.has-off .moff').count()) >= 1, 'TO4 month view marks the days someone is off');
+    sql(`delete from app.time_off where reason = 'Holiday'`);
     check((await page.locator('.mcell').count()) >= 28 && (await page.locator('.mchip').count()) >= 1, 'O4b owner month view shows the month with coloured bookings');
     await shot(page, 'desktop-owner-calendar-month', false);
     await page.click('.seg-btn:has-text("Day")');
