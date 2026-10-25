@@ -190,7 +190,10 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
       grid.appendChild(btn);
       d = addDays(d, 1);
     }
-    mount(cal, head, grid, days.length === 0 ? h('p', { class: 'muted small cal-none', text: 'No free times this month. Try the next month.' }) : null);
+    const legend = h('div', { class: 'cal-key', attrs: { 'aria-hidden': 'true' } },
+      h('span', null, h('span', { class: 'cal-key-sw is-open' }), 'Available'),
+      h('span', null, h('span', { class: 'cal-key-sw is-closed' }), 'Not available (off or fully booked)'));
+    mount(cal, head, grid, legend, days.length === 0 ? h('p', { class: 'muted small cal-none', text: 'No free times this month. Try the next month.' }) : null);
   }
 
   async function renderSlots(el: HTMLElement, date: string, force = false) {

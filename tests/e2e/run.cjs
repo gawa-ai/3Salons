@@ -74,6 +74,10 @@ async function main() {
     await shot(page, 'desktop-book-2-service', false);
     await page.click('.choice-service:has-text("Party Makeup")');
     await page.waitForSelector('.cal-day.has-slots');
+    const offDay = await page.locator('.cal-day:disabled').first().evaluate((el) => { const c = getComputedStyle(el); return { deco: c.textDecorationLine, color: c.color, bg: c.backgroundImage }; });
+    check(offDay.deco.includes('line-through') && offDay.color === 'rgb(95, 84, 76)' && /gradient/.test(offDay.bg), 'CAL1 days she is not available are clearly marked (struck through, striped, readable colour)', offDay);
+    check((await page.locator('.cal-key').innerText()).includes('Not available'), 'CAL2 the booking calendar has a key explaining available / not available');
+    await shot(page, 'desktop-book-calendar-off-days', false);
     // pick the 4th open day (beyond minimum notice)
     await page.locator('.cal-day.has-slots').nth(3).click();
     await page.waitForSelector('.slot');
