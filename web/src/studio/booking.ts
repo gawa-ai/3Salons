@@ -105,7 +105,7 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
         : b.status === 'pending' ? notice('warn', b.deposit_pence > 0
             ? `Awaiting your answer. If you accept, the client is asked for a ${b.deposit_label} deposit and the time is held until it is paid.`
             : 'Awaiting confirmation. The client has been told the booking is provisional until it is confirmed.') : null,
-      b.deposit_status === 'received' ? notice('info', `Deposit of ${b.deposit_label} received. It is deducted on the day.`) : null,
+      b.deposit_status === 'received' ? notice('info', `Deposit of ${b.deposit_label} received. This will be deducted on the day.`) : null,
       b.status_reason && ['declined', 'cancelled', 'expired'].includes(b.status) ? notice('info', `Reason: ${b.status_reason}`) : null,
       h('dl', { class: 'kv' },
         h('dt', { text: 'When' }), h('dd', { text: `${formatDateLong(b.local_date)}, ${time12(b.local_time)} to ${time12(b.local_end)}` }),
