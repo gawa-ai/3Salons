@@ -229,6 +229,9 @@ async function main() {
     await page.goto(BASE + '/studio');
     await page.waitForSelector('.tiles');
     check((await page.locator('.blist .brow').count()) === 2, 'O3 owner "Needs confirming" shows both pending requests');
+    await page.waitForSelector('[data-badge="/studio/bookings"]:not([hidden])', { timeout: 8000 });
+    const bk = await page.locator('[data-badge="/studio/bookings"]').innerText();
+    check(bk === '2' && /^\(\d+\)/.test(await page.title()), 'BADGE1 the Bookings menu item shows how many requests are waiting, and the tab title shows the total', { bk, title: await page.title() });
     await page.waitForTimeout(300);
     await shot(page, 'desktop-owner-overview');
     await page.goto(BASE + '/studio/calendar');

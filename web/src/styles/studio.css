@@ -294,3 +294,7 @@ a.tile:hover { border-color: var(--stone-2); box-shadow: var(--shadow-1); color:
 
 .alerts-banner { margin-bottom: 1rem; }
 .alerts-banner .row-end { justify-content: flex-start; margin-top: .5rem; flex-wrap: wrap; }
+
+.side-badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--champagne); color: var(--ink); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.side-badge[hidden] { display: none; }
+.side-link.active .side-badge { background: var(--pearl); }

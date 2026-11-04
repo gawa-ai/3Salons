@@ -1,6 +1,6 @@
 import { h, icon, mount } from '../lib/dom';
 import { spinner, errorBox, button } from '../lib/ui';
-import { currentSession, signOut } from '../lib/supabase';
+import { currentSession, signOut, rpc } from '../lib/supabase';
 import { navigate } from '../lib/router';
 import { loadMe, primaryMembership, onPrivateClear, type Membership, type Me, type ProRef } from '../auth/session';
 
@@ -75,7 +75,8 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
 
   const navList = h('ul', { class: 'side-nav' }, NAV.filter((n) => !n.owner || isOwner).map((n) =>
     h('li', null, h('a', { class: ['side-link', path === n.path && 'active'], attrs: { href: n.path, 'aria-current': path === n.path ? 'page' : undefined } },
-      icon(n.icon, 18), h('span', { text: !isOwner && STAFF_LABELS[n.path] ? STAFF_LABELS[n.path] : n.label })))));
+      icon(n.icon, 18), h('span', { text: !isOwner && STAFF_LABELS[n.path] ? STAFF_LABELS[n.path] : n.label }),
+      n.path === '/studio/bookings' || n.path === '/studio/enquiries' ? h('span', { class: 'side-badge', attrs: { 'data-badge': n.path, hidden: true } }) : null))));
 
   const who = isOwner ? 'Owner' : (ownPro?.specialty ?? 'Professional');
   const identity = h('div', { class: 'side-identity' },
@@ -135,6 +136,7 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
     setActions: (nodes) => mount(actions, nodes),
     proById: (id) => m.professionals.find((p) => p.id === id),
   };
+  startAlertBadges(sidebar, m.salon.id, title, scope);
   try {
     await page(ctx);
   } catch (e) {
@@ -143,4 +145,39 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
     if (err.code === 'forbidden') { scopeOwner = null; }
     mount(content, errorBox(err.message, () => studio(app, path, page, opts)));
   }
+}
+
+// Live counts so new work is visible without opening each page: Bookings (awaiting confirmation) and
+// Enquiries (new). Also shown in the tab title and, where the phone allows, on the app icon.
+let badgeTimer: number | null = null;
+let badgeCleanup: (() => void) | null = null;
+function startAlertBadges(sidebar: HTMLElement, salonId: string, baseTitle: string, scope: string | null) {
+  if (badgeTimer !== null) { window.clearInterval(badgeTimer); badgeTimer = null; }
+  badgeCleanup?.();
+  const set = (path: string, n: number) => {
+    const el = sidebar.querySelector<HTMLElement>(`[data-badge="${path}"]`);
+    if (!el) return;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.hidden = n <= 0;
+    el.setAttribute('aria-label', path.endsWith('bookings') ? `${n} awaiting confirmation` : `${n} new`);
+  };
+  const refresh = async () => {
+    if (document.hidden || !currentSession()) return;
+    try {
+      const r = await rpc<any>('salon_dash_overview', { p_salon: salonId, p_professional: scope });
+      const pending = Number(r?.counts?.pending ?? 0);
+      const enq = Number(r?.new_enquiries ?? 0);
+      set('/studio/bookings', pending);
+      set('/studio/enquiries', enq);
+      const total = pending + enq;
+      document.title = (total > 0 ? `(${total}) ` : '') + baseTitle + ' \u00b7 Studio \u00b7 Shahina Ahmed';
+      const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+      if (total > 0) void nav.setAppBadge?.(total)?.catch(() => {}); else void nav.clearAppBadge?.()?.catch(() => {});
+    } catch { /* badges are a convenience; ignore */ }
+  };
+  const onVisible = () => { if (!document.hidden) void refresh(); };
+  document.addEventListener('visibilitychange', onVisible);
+  badgeCleanup = () => document.removeEventListener('visibilitychange', onVisible);
+  void refresh();
+  badgeTimer = window.setInterval(() => void refresh(), 60000);
 }
