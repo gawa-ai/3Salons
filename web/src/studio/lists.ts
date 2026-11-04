@@ -147,7 +147,7 @@ export async function enquiriesPage(ctx: Ctx) {
         h('dt', { text: 'Mobile' }), h('dd', null, h('a', { attrs: { href: `tel:${e.phone}` }, text: e.phone })),
         e.email ? [h('dt', { text: 'Email' }), h('dd', null, h('a', { attrs: { href: `mailto:${e.email}` }, text: e.email }))] : null),
       e.message ? h('p', { class: 'enq-msg pre', text: e.message }) : null,
-      h('div', { class: 'enq-actions' }, button('Update', { size: 'sm', variant: 'secondary', onClick: () => editEnquiry(ctx, e, () => void load()) }))))));
+      h('div', { class: 'enq-actions' }, button('Update status or note', { size: 'sm', variant: 'secondary', onClick: () => editEnquiry(ctx, e, () => void load()) }))))));
   };
   mount(ctx.content, h('div', { class: 'list-tools' }, chips), list);
   await load();
@@ -158,7 +158,7 @@ function editEnquiry(ctx: Ctx, e: any, onDone: () => void) {
   const st = select({ label: 'Status', name: 'status', value: e.status, options: Object.entries(ENQ_STATUS).map(([value, label]) => ({ value, label })) });
   const pro = ctx.isOwner ? select({ label: 'Assigned to', name: 'pro', value: e.professional_id ?? '', options: [{ value: '', label: 'No preference (owner only)' }, ...ctx.pros.map((p) => ({ value: p.id, label: p.display_name }))] }) : null;
   const note = textarea({ label: 'Studio note', name: 'note', value: e.internal_note ?? '', rows: 3, maxlength: 2000 });
-  append(d.body, st.wrap, pro?.wrap ?? null, note.wrap);
+  append(d.body, h('p', { class: 'muted small', text: 'Use this to keep track of the enquiry, for example mark it Contacted once you have replied. It only updates your own record and nothing is sent to the client.' }), st.wrap, pro?.wrap ?? null, note.wrap);
   const save = button('Save', { onClick: async () => {
     setBusy(save, true, 'Saving…');
     try {
