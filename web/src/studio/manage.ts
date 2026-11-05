@@ -364,6 +364,8 @@ export async function settingsPage(ctx: Ctx) {
   const grid = select({ label: 'Start times every', name: 'grid', value: String(s.slot_interval_min), options: [10, 15, 20, 30, 60].map((n) => ({ value: String(n), label: `${n} minutes` })) });
   // ---- which texts are sent (cost control)
   const SMS_TYPES: [string, string, string][] = [
+    ['enquiry_received', 'Enquiry thank-you', 'Sent as soon as someone sends a bridal or general enquiry: thank you, someone will get back to you.'],
+    ['declined', 'Booking declined', 'Sent when you decline a booking request.'],
     ['request_received', 'Booking request received', 'Sent as soon as a client asks for a booking.'],
     ['deposit_request', 'Deposit request', 'Sent when you accept a booking that needs a deposit (includes bank details).'],
     ['deposit_received', 'Deposit received', 'Sent when you press "Deposit received". Tells the client they are confirmed.'],

@@ -63,7 +63,7 @@ const HISTORY_LABEL: Record<string, string> = {
 };
 const PURPOSE_LABEL: Record<string, string> = {
   request_received: 'Request received (to client)', new_request: 'New request (to artist)', confirmed: 'Confirmation (to client)',
-  declined: 'Declined (to client)', deposit_request: 'Deposit request (to client)', deposit_received: 'Deposit received (to client)', deposit_expired: 'Deposit missed (to client)', cancelled: 'Cancellation (to client)', cancelled_pro: 'Cancellation (to artist)', rescheduled: 'Moved (to client)', new_enquiry: 'New enquiry (to artist)',
+  declined: 'Declined (to client)', deposit_request: 'Deposit request (to client)', deposit_received: 'Deposit received (to client)', deposit_expired: 'Deposit missed (to client)', cancelled: 'Cancellation (to client)', cancelled_pro: 'Cancellation (to artist)', rescheduled: 'Moved (to client)', new_enquiry: 'New enquiry (to artist)', enquiry_received: 'Enquiry thank-you (to client)',
 };
 export const MSG_STATUS: Record<string, string> = { not_connected: 'Not sent: SMS not connected', queued: 'Queued', sent: 'Sent', failed: 'Failed', skipped: 'Skipped', cancelled: 'Cancelled' };
 

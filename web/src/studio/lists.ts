@@ -1,7 +1,7 @@
 import { h, icon, mount, append } from '../lib/dom';
 import { button, spinner, emptyState, field, textarea, select, checkbox, toast, openDialog, setBusy, proDot, notice } from '../lib/ui';
 import { rpc } from '../lib/supabase';
-import { addDays, todayLocal, zonedToUtc, formatDateLong, relativeTime, dateTimeShort, time12, SOURCE_LABEL, STATUS_LABEL } from '../lib/format';
+import { addDays, todayLocal, zonedToUtc, formatDateLong, relativeTime, dateTimeShort, time12, pounds, SOURCE_LABEL, STATUS_LABEL } from '../lib/format';
 import type { Ctx } from './shell';
 import { bookingRow, quickActions, openBooking, openNewBooking, csvDownload, type Booking } from './booking';
 
@@ -122,23 +122,23 @@ function openClient(ctx: Ctx, id: string, onChange: () => void) {
 }
 
 // ===================================================================== enquiries
-const ENQ_STATUS: Record<string, string> = { new: 'New', contacted: 'Contacted', booked: 'Booked', closed: 'Closed' };
+const ENQ_STATUS: Record<string, string> = { new: 'New', contacted: 'Contacted', agreed: 'Agreed, awaiting deposit', booked: 'Booked', closed: 'Closed' };
 export async function enquiriesPage(ctx: Ctx) {
   let filter = 'open';
   const chips = h('div', { class: 'chips', attrs: { role: 'tablist', 'aria-label': 'Filter enquiries' } });
   const list = h('div');
   const load = async () => {
-    mount(chips, [['open', 'Open'], ['new', 'New'], ['contacted', 'Contacted'], ['booked', 'Booked'], ['closed', 'Closed'], ['all', 'All']].map(([k, l]) =>
+    mount(chips, [['open', 'Open'], ['new', 'New'], ['contacted', 'Contacted'], ['agreed', 'Agreed'], ['booked', 'Booked'], ['closed', 'Closed'], ['all', 'All']].map(([k, l]) =>
       h('button', { class: ['chip', filter === k && 'active'], attrs: { type: 'button', role: 'tab', 'aria-selected': String(filter === k) }, text: l, on: { click: () => { filter = k; void load(); } } })));
     mount(list, spinner());
-    const r = await rpc<any>('salon_dash_enquiries', { p_salon: ctx.salonId, p_professional: ctx.scope, p_status: ['new', 'contacted', 'booked', 'closed'].includes(filter) ? filter : null });
+    const r = await rpc<any>('salon_dash_enquiries', { p_salon: ctx.salonId, p_professional: ctx.scope, p_status: ['new', 'contacted', 'agreed', 'booked', 'closed'].includes(filter) ? filter : null });
     let items = r.items as any[];
-    if (filter === 'open') items = items.filter((e) => e.status === 'new' || e.status === 'contacted');
+    if (filter === 'open') items = items.filter((e) => e.status === 'new' || e.status === 'contacted' || e.status === 'agreed');
     if (!items.length) { mount(list, emptyState('No enquiries', 'Bridal and general enquiries from the website appear here.')); return; }
     mount(list, h('ul', { class: 'enq-list' }, items.map((e) => h('li', { class: 'enq' },
       h('div', { class: 'enq-head' },
         h('div', null, h('p', { class: 'enq-name', text: e.name }), h('p', { class: 'muted small', text: `${e.kind === 'bridal' ? 'Bridal' : 'General'} enquiry, ${relativeTime(e.created_at)}` })),
-        h('span', { class: ['badge', e.status === 'new' ? 'badge-pending' : e.status === 'booked' ? 'badge-confirmed' : 'badge-neutral'], text: ENQ_STATUS[e.status] })),
+        h('span', { class: ['badge', e.status === 'new' || e.status === 'agreed' ? 'badge-pending' : e.status === 'booked' ? 'badge-confirmed' : 'badge-neutral'], text: ENQ_STATUS[e.status] })),
       h('dl', { class: 'kv kv-compact' },
         h('dt', { text: 'For' }), h('dd', null, e.professional ? [proDot(e.professional_color), ' ', e.professional] : 'No preference'),
         e.event_date ? [h('dt', { text: 'Date' }), h('dd', { text: formatDateLong(e.event_date) })] : null,
@@ -147,10 +147,37 @@ export async function enquiriesPage(ctx: Ctx) {
         h('dt', { text: 'Mobile' }), h('dd', null, h('a', { attrs: { href: `tel:${e.phone}` }, text: e.phone })),
         e.email ? [h('dt', { text: 'Email' }), h('dd', null, h('a', { attrs: { href: `mailto:${e.email}` }, text: e.email }))] : null),
       e.message ? h('p', { class: 'enq-msg pre', text: e.message }) : null,
-      h('div', { class: 'enq-actions' }, button('Update status or note', { size: 'sm', variant: 'secondary', onClick: () => editEnquiry(ctx, e, () => void load()) }))))));
+      e.status === 'agreed' && e.booking_id ? notice('info', `Deposit of ${pounds(e.deposit_pence)} requested for ${dateTimeShort(e.booking_starts_at)} (ref ${e.booking_ref}). When it arrives, open the booking and press "Deposit received". The client is then confirmed and this enquiry becomes Booked.`) : null,
+      e.status === 'booked' && e.booking_id ? h('p', { class: 'muted small', text: `Booked for ${dateTimeShort(e.booking_starts_at)} (ref ${e.booking_ref}).` }) : null,
+      h('div', { class: 'enq-actions' },
+        e.booking_id && (e.status === 'agreed' || e.status === 'booked') ? button('Open booking', { size: 'sm', onClick: () => openBooking(ctx, e.booking_id, () => void load()) }) : null,
+        e.kind === 'bridal' && (e.status === 'new' || e.status === 'contacted') ? button('Agreed, request deposit', { size: 'sm', onClick: () => agreeEnquiry(ctx, e, () => void load()) }) : null,
+        button('Update status or note', { size: 'sm', variant: 'secondary', onClick: () => editEnquiry(ctx, e, () => void load()) }))))));
   };
   mount(ctx.content, h('div', { class: 'list-tools' }, chips), list);
   await load();
+}
+
+function agreeEnquiry(ctx: Ctx, e: any, onDone: () => void) {
+  const d = openDialog({ title: 'Agreed, request deposit', subtitle: e.name, size: 'sm' });
+  const date = field({ label: 'Date', name: 'date', type: 'date', value: e.event_date ?? '', required: true, min: todayLocal() });
+  const time = field({ label: 'Start time', name: 'time', type: 'time', value: '', required: true });
+  const dur = field({ label: 'How long (hours)', name: 'dur', type: 'number', value: '3', required: true, min: '0.25', max: '12', step: '0.25', inputmode: 'decimal' });
+  const dep = field({ label: 'Deposit (£)', name: 'dep', type: 'number', value: '20', required: true, min: '1', step: '0.01', inputmode: 'decimal' });
+  const err = h('div');
+  append(d.body, h('p', { class: 'muted small', text: 'Once you and the client have agreed, enter the details. This holds the time in your calendar and texts the client the deposit request with your payment details. When you press "Deposit received" on the booking, they get their confirmation and the enquiry becomes Booked.' }), date.wrap, time.wrap, dur.wrap, dep.wrap, err);
+  const save = button('Send deposit request', { onClick: async () => {
+    mount(err);
+    const mins = Math.round(Number(dur.input.value) * 60);
+    const pence = Math.round(Number(dep.input.value) * 100);
+    if (!date.input.value || !time.input.value || !(mins >= 15) || !(pence > 0)) { mount(err, notice('error', 'Please fill in the date, start time, length and deposit.')); return; }
+    setBusy(save, true, 'Sending…');
+    try {
+      await rpc('salon_dash_enquiry_agree', { p_enquiry: e.id, p_payload: { date: date.input.value, time: time.input.value, duration_min: mins, deposit_pence: pence } });
+      toast('Deposit request sent'); d.close(); onDone();
+    } catch (x) { setBusy(save, false); mount(err, notice('error', (x as Error).message)); }
+  } });
+  append(d.footer, button('Cancel', { variant: 'ghost', onClick: () => d.close() }), save);
 }
 
 function editEnquiry(ctx: Ctx, e: any, onDone: () => void) {
@@ -174,7 +201,7 @@ function editEnquiry(ctx: Ctx, e: any, onDone: () => void) {
 // ===================================================================== messages (outbox) + calls
 const PURPOSE: Record<string, string> = {
   request_received: 'Request received', new_request: 'New request', confirmed: 'Confirmed', declined: 'Declined', cancelled: 'Cancelled',
-  cancelled_pro: 'Client cancelled', rescheduled: 'Moved', new_enquiry: 'New enquiry',
+  cancelled_pro: 'Client cancelled', rescheduled: 'Moved', new_enquiry: 'New enquiry', enquiry_received: 'Enquiry thank-you', deposit_request: 'Deposit request', deposit_received: 'Deposit received', deposit_expired: 'Deposit missed',
 };
 export async function messagesPage(ctx: Ctx) {
   mount(ctx.content, spinner());

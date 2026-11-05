@@ -5,6 +5,8 @@ PASS  P3b contact block says bookings are by appointment only
 PASS  P3c clicking a gallery photo opens it larger
 PASS  P3d Escape closes the photo viewer
 PASS  P4 service tabs switch artist
+PASS  CAL1 days she is not available are clearly marked (struck through, striped, readable colour)
+PASS  CAL2 the booking calendar has a key explaining available / not available
 PASS  P3c group of 2 shows fewer, longer slots and says "for 2 people"
 PASS  P4b booking form has no email field
 PASS  P5 booking request accepted with a reference
@@ -29,8 +31,15 @@ PASS  APP4 service worker shows alerts only and has no fetch/caching handler
 PASS  APP5 owner is offered a one-tap "Turn on alerts" on the overview
 PASS  APP6 the Account page has an "Alerts on this phone" panel with a Turn on button
 PASS  O3 owner "Needs confirming" shows both pending requests
+PASS  BADGE1 the Bookings menu item shows how many requests are waiting, and the tab title shows the total
 PASS  O4 owner day calendar has one column per professional
+PASS  TO1 day calendar shows a labelled "Time off" block for an artist who is away
+PASS  TO2 the time-off block uses the strong colour, not the pale off-hours shade
+PASS  TO3 week view (all artists) names who is off in the day header
+PASS  TO4 month view marks the days someone is off
 PASS  O4b owner month view shows the month with coloured bookings
+PASS  ENQ1 bridal enquiry offers "Agreed, request deposit"
+PASS  ENQ2 agree dialog asks for date, time, length and deposit
 PASS  O5 messages page is honest: SMS not connected
 PASS  O6 owner creates a one-time staff invitation code
 PASS  O7 code is not stored in plain text
@@ -58,4 +67,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-59 checks passed
+68 checks passed

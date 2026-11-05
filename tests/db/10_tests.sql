@@ -391,17 +391,17 @@ select pg_temp.check((select status from app.bookings where ref = 'PASTPD') = 'e
 set role authenticated; select pg_temp.login(:'u_owner');
 -- (the grid is judged by its first/last slot, not by a fixed count, because earlier tests may already hold bookings on these dates)
 select pg_temp.check((select count(*) > 0 and min(x->>'time') >= '10:00' and max(x->>'time') <= '17:45' and bool_and((x->>'time') ~ ':(00|15|30|45)$')
-                        from jsonb_array_elements((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2026-10-25'))->'slots') x)
+                        from jsonb_array_elements((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2027-10-31'))->'slots') x)
   and (select count(*) > 0 and min(x->>'time') >= '10:00' and max(x->>'time') <= '17:45' and bool_and((x->>'time') ~ ':(00|15|30|45)$')
-                        from jsonb_array_elements((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2027-03-28'))->'slots') x),
+                        from jsonb_array_elements((public.salon_dash_slots(:'salon', :'p_shirin', :'s_shirin_hair', '2028-03-26'))->'slots') x),
   '109 clock-change Sundays (Oct + Mar) keep a normal 10:00-18:00 grid');
 select (public.salon_dash_booking_create(:'salon', jsonb_build_object('professional_id', :'p_shirin', 'service_id', :'s_shirin_hair',
-  'date', '2026-10-25', 'time', '10:00', 'name', 'Dst Test', 'phone', '07700 901000')))#>>'{booking,id}' as dst1 \gset
+  'date', '2027-10-31', 'time', '10:00', 'name', 'Dst Test', 'phone', '07700 901000')))#>>'{booking,id}' as dst1 \gset
 select (public.salon_dash_booking_create(:'salon', jsonb_build_object('professional_id', :'p_shirin', 'service_id', :'s_shirin_hair',
-  'date', '2026-10-24', 'time', '10:00', 'name', 'Dst Test', 'phone', '07700 901000')))#>>'{booking,id}' as dst0 \gset
+  'date', '2027-10-30', 'time', '10:00', 'name', 'Dst Test', 'phone', '07700 901000')))#>>'{booking,id}' as dst0 \gset
 reset role;
-select pg_temp.check((select starts_at from app.bookings where id = :'dst1') = '2026-10-25 10:00:00+00'
-  and (select starts_at from app.bookings where id = :'dst0') = '2026-10-24 09:00:00+00'
+select pg_temp.check((select starts_at from app.bookings where id = :'dst1') = '2027-10-31 10:00:00+00'
+  and (select starts_at from app.bookings where id = :'dst0') = '2027-10-30 09:00:00+00'
   and (select ends_at - starts_at from app.bookings where id = :'dst1') = interval '60 minutes',
   '110 10:00 local stored correctly either side of the clock change (GMT vs BST)');
 
@@ -1031,4 +1031,62 @@ select pg_temp.check(pg_temp.q($$insert into app.notifications (salon_id, profes
   values ('$$ || :'salon' || $$', null, 'professional', 'sms', 'new_enquiry', 'x', 'skipped', 'pu-trigger-test') returning 1$$)->>'err' is null,
   'PU17 a broken alert queue never stops a booking or enquiry from being saved');
 alter table app.push_outbox_x rename to push_outbox;
+
+-- ---------------------------------------------------------------- bridal enquiry flow
+reset role;
+update app.salons set deposit_instructions = coalesce(nullif(deposit_instructions, ''), 'Bank: Test Bank, sort 00-00-00, acct 12345678') where id = :'salon';
+select public.salon_public_enquiry('shahina-ahmed', jsonb_build_object('professional','sofia-mua','name','Bella Bride',
+  'phone','07700 900888','kind','bridal','event_date', to_char(now() + interval '120 days','YYYY-MM-DD'),
+  'idempotency_key','idem-enquiry-bridal-000001')) as be \gset
+select pg_temp.check((:'be'::jsonb)->>'ok' = 'true', 'BR1 bridal enquiry for Sofia saved');
+select id as enq from app.enquiries where name = 'Bella Bride' \gset
+select pg_temp.check((select body from app.notifications where enquiry_id = :'enq' and audience = 'customer' and purpose = 'enquiry_received')
+  like 'Hi Bella, thank you for your bridal enquiry with %. Someone will get back to you soon.', 'BR2 client gets the thank-you text with the artist name',
+  (select to_jsonb(n) from app.notifications n where enquiry_id = :'enq' and audience = 'customer'));
+select pg_temp.check((select to_addr from app.notifications where enquiry_id = :'enq' and purpose = 'enquiry_received') = '+447700900888', 'BR3 thank-you goes to the enquirer''s mobile');
+select pg_temp.check(exists (select 1 from app.notifications where enquiry_id = :'enq' and audience = 'professional' and purpose = 'new_enquiry'), 'BR4 artist is still notified');
+select public.salon_public_enquiry('shahina-ahmed', jsonb_build_object('professional','any','name','Anna Any','phone','07700 900889',
+  'idempotency_key','idem-enquiry-bridal-000002')) as be2 \gset
+select pg_temp.check((select body from app.notifications n join app.enquiries e on e.id = n.enquiry_id where e.name = 'Anna Any' and n.purpose = 'enquiry_received') like '%enquiry with %Shahina%', 'BR5 no artist chosen -> studio name used', (select jsonb_agg(body) from app.notifications where purpose = 'enquiry_received'));
+
+select to_char((now() at time zone 'Europe/London')::date + 90, 'YYYY-MM-DD') as bd \gset
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_update(%L, '{"status":"agreed"}')$$, :'enq'))->>'err') = 'invalid_status', 'BR6 Agreed cannot be set by hand');
+select public.salon_dash_enquiry_update(:'enq', '{"status":"contacted"}') as u1 \gset
+select pg_temp.check((:'u1'::jsonb)->>'ok' = 'true', 'BR7 Contacted still works');
+select public.salon_dash_enquiry_agree(:'enq', jsonb_build_object('date',:'bd','time','07:00','duration_min',180,'deposit_pence',5000)) as ag \gset
+select pg_temp.check((:'ag'::jsonb)->>'ok' = 'true', 'BR8 artist agrees: time held, deposit requested', :'ag'::jsonb);
+select (:'ag'::jsonb)#>>'{booking,id}' as bk \gset
+reset role;
+select pg_temp.check((select status from app.enquiries where id = :'enq') = 'agreed', 'BR9 enquiry is Agreed');
+select pg_temp.check((select status = 'pending' and deposit_status = 'requested' and deposit_pence = 5000 and duration_min = 180 and service_name = 'Bridal'
+                      from app.bookings where id = (select booking_id from app.enquiries where id = :'enq')), 'BR10 pending bridal booking with the deposit');
+select pg_temp.check((select body from app.notifications where purpose = 'deposit_request' and booking_id = (select booking_id from app.enquiries where id = :'enq'))
+                     like '%£50%non refundable%', 'BR11 client gets the deposit message', (select jsonb_agg(body) from app.notifications where purpose = 'deposit_request'));
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_update(%L, '{"status":"closed"}')$$, :'enq'))->>'res') is null, 'BR12 status locked while waiting for deposit');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_agree(%L, '{}')$$, :'enq'))->>'res') is null, 'BR13 cannot agree twice');
+select pg_temp.check((select (i->>'booking_ref') is not null and i->>'deposit_status' = 'requested'
+                      from jsonb_array_elements((public.salon_dash_enquiries(:'salon'::uuid))->'items') i where i->>'id' = :'enq'), 'BR14 enquiry list shows the booking and deposit');
+select public.salon_dash_booking_action(:'bk'::uuid, 'deposit_received') as dr \gset
+select pg_temp.check((:'dr'::jsonb)->>'ok' = 'true', 'BR15 deposit received', :'dr'::jsonb);
+reset role;
+select pg_temp.check((select status from app.enquiries where id = :'enq') = 'booked', 'BR16 enquiry changed from Agreed to Booked');
+select pg_temp.check((select status from app.bookings where id = (select booking_id from app.enquiries where id = :'enq')) = 'confirmed'
+                     and exists (select 1 from app.notifications where purpose = 'deposit_received' and booking_id = (select booking_id from app.enquiries where id = :'enq')),
+                     'BR17 booking confirmed and client gets the confirmation');
+-- second enquiry: deposit never arrives -> back to Contacted
+select id as enq2 from app.enquiries where name = 'Anna Any' \gset
+update app.enquiries set professional_id = :'p_sofia' where id = :'enq2';
+set role authenticated; select pg_temp.login(:'u_sofia');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_agree(%L, jsonb_build_object('date',%L,'time','07:00','duration_min',60,'deposit_pence',2000))$$, :'enq2', :'bd'))->>'err') = 'slot_taken', 'BR18 cannot agree onto an already booked time');
+select public.salon_dash_enquiry_agree(:'enq2', jsonb_build_object('date',:'bd','time','13:00','duration_min',60,'deposit_pence',2000)) as ag3 \gset
+select pg_temp.check((:'ag3'::jsonb)->>'ok' = 'true', 'BR19 second enquiry agreed at a free time', :'ag3'::jsonb);
+select public.salon_dash_booking_action(((:'ag3'::jsonb)#>>'{booking,id}')::uuid, 'cancel') as cx \gset
+reset role;
+select pg_temp.check((select status from app.enquiries where id = :'enq2') = 'contacted' and (select booking_id from app.enquiries where id = :'enq2') is null,
+                     'BR20 cancelled/declined booking puts the enquiry back to Contacted');
+set role authenticated; select pg_temp.login(:'u_shirin');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_agree(%L, '{}')$$, :'enq2'))->>'res') is null, 'BR21 another artist cannot agree Sofia''s enquiry');
+reset role;
 \echo ALL_TESTS_PASSED

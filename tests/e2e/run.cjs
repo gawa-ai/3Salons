@@ -273,6 +273,12 @@ async function main() {
     await page.goto(BASE + '/studio/enquiries');
     await page.waitForSelector('.enq');
     await shot(page, 'desktop-owner-enquiries', false);
+    check(await page.locator('button:has-text("Agreed, request deposit")').first().isVisible(), 'ENQ1 bridal enquiry offers "Agreed, request deposit"');
+    await page.click('button:has-text("Agreed, request deposit")');
+    await page.waitForSelector('input[name="dep"]');
+    check(await page.locator('text=Send deposit request').isVisible(), 'ENQ2 agree dialog asks for date, time, length and deposit');
+    await shot(page, 'desktop-owner-enquiry-agree', false);
+    await page.keyboard.press('Escape');
     await page.goto(BASE + '/studio/messages');
     await page.waitForSelector('.msg');
     check(await page.locator('text=Not connected').first().isVisible(), 'O5 messages page is honest: SMS not connected');
