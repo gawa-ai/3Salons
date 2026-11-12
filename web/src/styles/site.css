@@ -239,6 +239,7 @@ a.choice { text-decoration: none; color: inherit; }
 .choice-body { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .choice-title { font-weight: 700; font-size: 16px; }
 .choice-sub { color: var(--muted); font-size: 13px; }
+.choice-right { display: grid; justify-items: end; gap: 2px; text-align: right; }
 .choice-price { font-family: var(--serif); font-size: 22px; font-weight: 600; white-space: nowrap; }
 .choice-pro .pro-logo { max-width: 48px; }
 /* every artist box is the same size, and the avatar never shrinks or gets cut off */

@@ -126,8 +126,10 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
             h('span', { class: 'choice-price', text: s.price_label })))),
         ...listed.map((s) => h('li', null,
           h('a', { class: ['choice', 'choice-service'], attrs: { href: `/bridal?artist=${p.slug}` } },
-            h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `${durationLabel(s.duration_min)}. By enquiry` })),
-            h('span', { class: 'choice-price', text: `${s.price_label.charAt(0).toUpperCase()}${s.price_label.slice(1)} (plus travel)` })))),
+            h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: durationLabel(s.duration_min) })),
+            h('span', { class: 'choice-right' },
+              h('span', { class: 'choice-price', text: `${s.price_label.charAt(0).toUpperCase()}${s.price_label.slice(1)} (plus travel)` }),
+              h('span', { class: 'choice-sub', text: 'By enquiry' }))))),
       ]),
       enquire.length ? h('div', { class: 'enquire-box' }, icon('heart', 18), h('p', null, `${enquire.map((s) => s.name).join(', ')} ${enquire.length > 1 ? 'are' : 'is'} by enquiry. `, h('a', { attrs: { href: `/bridal?artist=${p.slug}` }, text: 'Send an enquiry' }))) : null,
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => go(1) }))];
