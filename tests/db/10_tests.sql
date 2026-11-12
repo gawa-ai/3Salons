@@ -1038,10 +1038,11 @@ alter table app.push_outbox_x rename to push_outbox;
 reset role;
 update app.salons set deposit_instructions = coalesce(nullif(deposit_instructions, ''), 'Bank: Test Bank, sort 00-00-00, acct 12345678') where id = :'salon';
 select public.salon_public_enquiry('shahina-ahmed', jsonb_build_object('professional','sofia-mua','name','Bella Bride',
-  'phone','07700 900888','kind','bridal','event_date', to_char(now() + interval '120 days','YYYY-MM-DD'),
+  'phone','07700 900888','kind','bridal','ready_time','07:30','event_date', to_char(now() + interval '120 days','YYYY-MM-DD'),
   'idempotency_key','idem-enquiry-bridal-000001')) as be \gset
 select pg_temp.check((:'be'::jsonb)->>'ok' = 'true', 'BR1 bridal enquiry for Sofia saved');
 select id as enq from app.enquiries where name = 'Bella Bride' \gset
+select pg_temp.check((select ready_time from app.enquiries where id = :'enq') = '07:30', 'TR1 time to be ready is saved on the enquiry');
 select pg_temp.check((select body from app.notifications where enquiry_id = :'enq' and audience = 'customer' and purpose = 'enquiry_received')
   like 'Hi Bella, thank you for your bridal enquiry with %. Someone will get back to you soon.', 'BR2 client gets the thank-you text with the artist name',
   (select to_jsonb(n) from app.notifications n where enquiry_id = :'enq' and audience = 'customer'));

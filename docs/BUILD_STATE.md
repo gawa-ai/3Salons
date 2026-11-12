@@ -131,3 +131,9 @@ Client request: a box under Party Hijab saying "Bridal Hijab, From £100 (Plus T
 - Migration `20261112150000_sabiha_bridal_hijab_listing.sql` (run in Supabase SQL editor): Sabiha's bridal service is renamed Bridal Hijab, 1 hr, from £100, still enquiry-only (not bookable online).
 - Booking page step 2: enquiry-only services that have a price show as a card under the bookable ones ("From £100 (plus travel)", "By enquiry"); the card links to `/bridal?artist=<slug>`. Services with no price still use the "Bridal is by enquiry" note. Bridal deposit flow unchanged (it uses the artist's bridal service, so the booking now reads "Bridal Hijab").
 - Tests: DB SB1, e2e SB-UI x2 (73 checks).
+
+## Bridal enquiry: "Time to be ready" (2026-11-12)
+Client request: a box under Event date on the bridal enquiry form.
+- Migration `20261112160000_enquiry_ready_time.sql` (run in Supabase SQL editor): `app.enquiries.ready_time` (optional), saved by `salon_public_enquiry` and returned by `salon_dash_enquiries` (both patched in place).
+- Form: optional time input "Time to be ready" under Event date. Studio enquiry card shows "Time to be ready".
+- Tests: DB TR1; DB 250+ PASS, e2e 73 PASS.

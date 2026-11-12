@@ -23,6 +23,7 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
   const fName = field({ label: 'Full name', name: 'name', required: true, autocomplete: 'name', maxlength: 80 });
   const fPhone = field({ label: 'Mobile number', name: 'phone', type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel' });
   const fDate = field({ label: 'Event date', name: 'event_date', type: 'date', min: profile.salon.today, hint: 'If you are not sure yet, leave it blank.' });
+  const fReady = field({ label: 'Time to be ready', name: 'ready_time', type: 'time', hint: 'The time you need to be ready by. Leave it blank if you are not sure yet.' });
   const fLoc = field({ label: 'Where is the event?', name: 'event_location', maxlength: 120, placeholder: 'Town or venue' });
   const fWant = field({ label: 'What would you like?', name: 'services_wanted', value: query.get('want') ?? '', maxlength: 200, placeholder: 'For example bridal hair and makeup, hijab styling, family members' });
   const fMsg = textarea({ label: 'Tell us more', name: 'message', rows: 4, maxlength: 1500, placeholder: 'Timings, number of people, the look you have in mind…' });
@@ -32,6 +33,7 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
   const body = h('div', { class: 'enquiry-body' });
   const form = h('form', { class: 'enquiry-form', attrs: { novalidate: true } },
     fPro.wrap, h('div', { class: 'form-row' }, fName.wrap, fPhone.wrap), h('div', { class: 'form-row' }, fDate.wrap),
+    h('div', { class: 'form-row' }, fReady.wrap),
     fLoc.wrap, fWant.wrap, fMsg.wrap, honey, err,
     h('p', { class: 'muted small form-note', text: 'We use these details only to reply to your enquiry. See our privacy notice.' }),
     submit);
@@ -47,7 +49,7 @@ export async function bridalPage(app: HTMLElement, query: URLSearchParams) {
     try {
       const r = await rpc<any>('salon_public_enquiry', { p_salon: SALON_SLUG, p_payload: {
         kind: 'bridal', professional: fPro.input.value, name: fName.input.value.trim(), phone: fPhone.input.value.trim(),
-        email: null, event_date: fDate.input.value || null, event_location: fLoc.input.value.trim() || null,
+        email: null, event_date: fDate.input.value || null, ready_time: fReady.input.value || null, event_location: fLoc.input.value.trim() || null,
         services_wanted: fWant.input.value.trim() || null, message: fMsg.input.value.trim() || null,
         idempotency_key: idem, company: (honey.querySelector('input') as HTMLInputElement).value,
       } }, { anon: true });

@@ -142,6 +142,7 @@ export async function enquiriesPage(ctx: Ctx) {
       h('dl', { class: 'kv kv-compact' },
         h('dt', { text: 'For' }), h('dd', null, e.professional ? [proDot(e.professional_color), ' ', e.professional] : 'No preference'),
         e.event_date ? [h('dt', { text: 'Date' }), h('dd', { text: formatDateLong(e.event_date) })] : null,
+        e.ready_time ? [h('dt', { text: 'Time to be ready' }), h('dd', { text: time12(e.ready_time) })] : null,
         e.event_location ? [h('dt', { text: 'Where' }), h('dd', { text: e.event_location })] : null,
         e.services_wanted ? [h('dt', { text: 'Wants' }), h('dd', { text: e.services_wanted })] : null,
         h('dt', { text: 'Mobile' }), h('dd', null, h('a', { attrs: { href: `tel:${e.phone}` }, text: e.phone })),
