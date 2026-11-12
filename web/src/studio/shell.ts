@@ -10,7 +10,8 @@ export interface Ctx {
   isOwner: boolean;
   salonId: string;
   pros: ProRef[];               // profiles visible to this login (owner: all, staff: own)
-  scope: string | null;          // owner: null = all professionals; staff: always their own id
+  scope: string | null;          // owner: null = all professionals; staff: always their own id (clients, enquiries, services, messages...)
+  viewScope: string | null;      // calendar and bookings: null = everyone. Everyone on the team may LOOK at everyone's bookings
   ownPro: ProRef | null;
   content: HTMLElement;
   setActions: (nodes: Node[]) => void;
@@ -34,16 +35,17 @@ const NAV: NavItem[] = [
   { path: '/studio/audit', label: 'Activity log', icon: 'shield', owner: true },
 ];
 const STAFF_LABELS: Record<string, string> = {
-  '/studio/calendar': 'My calendar', '/studio/bookings': 'My bookings', '/studio/clients': 'My clients',
+  '/studio/clients': 'My clients',
   '/studio/enquiries': 'My enquiries', '/studio/services': 'My services', '/studio/gallery': 'My portfolio',
 };
 
 let scopeOwner: string | null = null;  // remembered owner filter for this tab
-onPrivateClear(() => { scopeOwner = null; });
+let scopeStaff: string | null = null;  // remembered team-view filter for a professional's login (null = everyone)
+onPrivateClear(() => { scopeOwner = null; scopeStaff = null; });
 
 export type StudioPage = (ctx: Ctx) => Promise<void> | void;
 
-export async function studio(app: HTMLElement, path: string, page: StudioPage, opts: { ownerOnly?: boolean; title: string; scoped?: boolean }) {
+export async function studio(app: HTMLElement, path: string, page: StudioPage, opts: { ownerOnly?: boolean; title: string; scoped?: boolean; viewAll?: boolean }) {
   document.body.className = 'studio-body';
   if (!currentSession()) { navigate(`/signin`, { replace: true }); return; }
   mount(app, h('div', { class: 'studio-loading' }, spinner('Opening the studio')));
@@ -67,6 +69,9 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
   const ownPro = m.professionals.find((p) => p.id === m.professional_id) ?? null;
   const pros = m.professionals.filter((p) => p.active);
   const scope = isOwner ? (scopeOwner && pros.some((p) => p.id === scopeOwner) ? scopeOwner : null) : m.professional_id;
+  // Calendar and Bookings are team-wide for everyone (view only for other people's bookings).
+  const teamView = !isOwner && !!opts.viewAll;
+  const viewScope = isOwner ? scope : teamView ? (scopeStaff && pros.some((p) => p.id === scopeStaff) ? scopeStaff : null) : m.professional_id;
 
   const content = h('main', { class: 'studio-content', attrs: { id: 'main', tabindex: '-1' } });
   const actions = h('div', { class: 'top-actions' });
@@ -107,11 +112,12 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
   // Owner-only professional selector. It changes WHAT the owner asks for; the database
   // decides what anyone may see, so this is never a security control.
   let scopeBar: HTMLElement | null = null;
-  if (isOwner && opts.scoped !== false) {
+  if ((isOwner || teamView) && opts.scoped !== false) {
+    const cur = viewScope;
     scopeBar = h('div', { class: 'scope', attrs: { role: 'radiogroup', 'aria-label': 'Show bookings for' } },
-      [{ id: null as string | null, label: 'All professionals', color: '' }, ...pros.map((p) => ({ id: p.id as string | null, label: p.display_name, color: p.color }))].map((o) =>
-        h('button', { class: ['scope-btn', scope === o.id && 'active'], attrs: { type: 'button', role: 'radio', 'aria-checked': String(scope === o.id) },
-          on: { click: () => { scopeOwner = o.id; void studio(app, path, page, opts); } } },
+      [{ id: null as string | null, label: isOwner ? 'All professionals' : 'Everyone', color: '' }, ...pros.map((p) => ({ id: p.id as string | null, label: !isOwner && p.id === m.professional_id ? `${p.display_name} (me)` : p.display_name, color: p.color }))].map((o) =>
+        h('button', { class: ['scope-btn', cur === o.id && 'active'], attrs: { type: 'button', role: 'radio', 'aria-checked': String(cur === o.id) },
+          on: { click: () => { if (isOwner) scopeOwner = o.id; else scopeStaff = o.id; void studio(app, path, page, opts); } } },
           o.color ? h('span', { class: ['pro-dot', `pro-${o.color}`] }) : null, h('span', { text: o.label }))));
   } else if (!isOwner && ownPro && opts.scoped !== false) {
     scopeBar = h('div', { class: 'scope scope-fixed' }, h('span', { class: ['pro-dot', `pro-${ownPro.color}`] }), h('span', { text: `${ownPro.display_name} only` }));
@@ -132,7 +138,7 @@ export async function studio(app: HTMLElement, path: string, page: StudioPage, o
         preview, scopeBar, content)));
 
   const ctx: Ctx = {
-    m, me, isOwner, salonId: m.salon.id, pros, scope, ownPro, content,
+    m, me, isOwner, salonId: m.salon.id, pros, scope, viewScope, ownPro, content,
     setActions: (nodes) => mount(actions, nodes),
     proById: (id) => m.professionals.find((p) => p.id === id),
   };

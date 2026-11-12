@@ -67,6 +67,11 @@ const PURPOSE_LABEL: Record<string, string> = {
 };
 export const MSG_STATUS: Record<string, string> = { not_connected: 'Not sent: SMS not connected', queued: 'Queued', sent: 'Sent', failed: 'Failed', skipped: 'Skipped', cancelled: 'Cancelled' };
 
+/** Everyone on the team can look at every booking; only its professional and the owner can change it. */
+export function canEditBooking(ctx: Ctx, b: { professional_id: string }): boolean {
+  return ctx.isOwner || b.professional_id === ctx.m.professional_id;
+}
+
 export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
   const d = openDialog({ title: 'Booking', kind: 'drawer' });
   const load = async () => {
@@ -75,6 +80,7 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
     let r: any;
     try { r = await rpc('salon_dash_booking', { p_booking: id }); } catch (e) { mount(d.body, errorBox((e as Error).message, load)); return; }
     const b: Booking = r.booking;
+    const canEdit = r.can_edit !== false;
     d.setTitle(b.client_name);
     const act = async (action: string, label: string, opts: { confirm?: string; reason?: boolean; danger?: boolean } = {}) => {
       let reason = '';
@@ -100,7 +106,8 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
 
     mount(d.body,
       h('div', { class: 'bk-head' }, badgeFor(b), h('span', { class: 'bk-ref', text: `Ref ${b.ref}` })),
-      b.status === 'pending' && b.deposit_status === 'requested'
+      canEdit ? null : notice('info', `You can see this booking, but only ${b.professional} or the owner can change it.`),
+      !canEdit ? null : b.status === 'pending' && b.deposit_status === 'requested'
         ? notice('warn', `Deposit of ${b.deposit_label} requested. The client has until ${b.deposit_due_at ? dateTimeShort(b.deposit_due_at) : 'the deadline'} to pay. Check your own bank before pressing "Deposit received". The time is released automatically if it is not paid.`)
         : b.status === 'pending' ? notice('warn', b.deposit_pence > 0
             ? `Awaiting your answer. If you accept, the client is asked for a ${b.deposit_label} deposit and the time is held until it is paid.`
@@ -119,18 +126,19 @@ export function openBooking(ctx: Ctx, id: string, onChange: () => void) {
         h('dt', { text: 'Booked via' }), h('dd', { text: `${SOURCE_LABEL[b.source] ?? b.source}, ${relativeTime(b.created_at)}` }),
         b.customer_note ? [h('dt', { text: 'Client note' }), h('dd', { class: 'pre', text: b.customer_note })] : null,
         h('dt', { text: 'Visits' }), h('dd', { text: `${r.client_visits} completed with ${b.professional_short}` })),
-      noteField.wrap, h('div', { class: 'row-end' }, saveNote),
-      h('h3', { class: 'sub-title', text: 'History' }),
-      h('ol', { class: 'timeline' }, r.history.map((x: any) => h('li', null,
+      canEdit ? noteField.wrap : null, canEdit ? h('div', { class: 'row-end' }, saveNote) : null,
+      canEdit ? h('h3', { class: 'sub-title', text: 'History' }) : null,
+      !canEdit ? null : h('ol', { class: 'timeline' }, r.history.map((x: any) => h('li', null,
         h('span', { class: 'tl-when', text: dateTimeShort(x.at) }),
         h('span', { text: `${HISTORY_LABEL[x.action] ?? x.action}${x.detail?.reason ? ': ' + x.detail.reason : ''}${x.detail?.to && x.action.includes('resched') ? ` to ${x.detail.to}` : ''}` }),
         h('span', { class: 'tl-who', text: x.actor })))),
-      h('h3', { class: 'sub-title', text: 'Messages' }),
-      r.messages.length ? h('ul', { class: 'msg-mini' }, r.messages.map((x: any) => h('li', null,
+      canEdit ? h('h3', { class: 'sub-title', text: 'Messages' }) : null,
+      !canEdit ? null : r.messages.length ? h('ul', { class: 'msg-mini' }, r.messages.map((x: any) => h('li', null,
         h('p', { class: 'msg-mini-head' }, h('span', { text: PURPOSE_LABEL[x.purpose] ?? x.purpose }), h('span', { class: ['msg-status', `ms-${x.status}`], text: MSG_STATUS[x.status] ?? x.status })),
         h('p', { class: 'msg-mini-body', text: x.body })))) : h('p', { class: 'muted small', text: 'No messages.' }));
 
     const buttons: Node[] = [];
+    if (!canEdit) { mount(d.footer); return; }
     if (b.status === 'pending') {
       if (b.deposit_status === 'requested') {
         buttons.push(button('Deposit received', { icon: 'check', onClick: () => act('deposit_received', 'Deposit received', { confirm: `Confirm that you have checked your bank and the ${b.deposit_label} deposit has arrived. The booking is confirmed and ${b.client_name} is told.` }) }));

@@ -3,7 +3,7 @@ import { button, spinner, emptyState, field, textarea, select, checkbox, toast, 
 import { rpc } from '../lib/supabase';
 import { addDays, todayLocal, zonedToUtc, formatDateLong, relativeTime, dateTimeShort, time12, pounds, SOURCE_LABEL, STATUS_LABEL } from '../lib/format';
 import type { Ctx } from './shell';
-import { bookingRow, quickActions, openBooking, openNewBooking, csvDownload, type Booking } from './booking';
+import { bookingRow, quickActions, canEditBooking, openBooking, openNewBooking, csvDownload, type Booking } from './booking';
 
 // ===================================================================== bookings
 const VIEWS: { key: string; label: string }[] = [
@@ -31,7 +31,7 @@ export async function bookingsPage(ctx: Ctx) {
       on: { click: () => { view = v.key; history.replaceState(null, '', `/studio/bookings?view=${v.key}`); void load(); } } })));
     mount(list, spinner());
     const now = new Date().toISOString();
-    const args: Record<string, unknown> = { p_salon: ctx.salonId, p_professional: ctx.scope, p_search: q || null, p_limit: 1000 };
+    const args: Record<string, unknown> = { p_salon: ctx.salonId, p_professional: ctx.viewScope, p_search: q || null, p_limit: 1000 };
     if (view === 'upcoming') { args.p_from = now; args.p_statuses = ['pending', 'confirmed']; }
     if (view === 'pending') { args.p_from = now; args.p_statuses = ['pending']; }
     if (view === 'outcome') { args.p_to = now; args.p_statuses = ['confirmed']; }
@@ -45,7 +45,7 @@ export async function bookingsPage(ctx: Ctx) {
     current.forEach((b) => groups.set(b.local_date, [...(groups.get(b.local_date) ?? []), b]));
     mount(list, Array.from(groups.entries()).map(([d, items]) => h('section', { class: 'bgroup' },
       h('h3', { class: 'bgroup-title', text: formatDateLong(d) }),
-      h('ul', { class: 'blist' }, items.map((b) => bookingRow(b, () => openBooking(ctx, b.id, () => void load()), quickActions(b, () => void load()) ?? undefined))))));
+      h('ul', { class: 'blist' }, items.map((b) => bookingRow(b, () => openBooking(ctx, b.id, () => void load()), (canEditBooking(ctx, b) ? quickActions(b, () => void load()) : null) ?? undefined))))));
   };
 
   ctx.setActions([

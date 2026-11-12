@@ -59,8 +59,8 @@ export async function calendarPage(ctx: Ctx) {
     const from = zonedToUtc(days[0], '00:00').toISOString();
     const to = zonedToUtc(addDays(days[days.length - 1], 1), '00:00').toISOString();
     const [bk, sch] = await Promise.all([
-      rpc<any>('salon_dash_bookings', { p_salon: ctx.salonId, p_professional: ctx.scope, p_from: from, p_to: to, p_statuses: ['pending', 'confirmed', 'completed', 'no_show'] }),
-      rpc<any>('salon_dash_schedule', { p_salon: ctx.salonId, p_professional: ctx.scope }),
+      rpc<any>('salon_dash_bookings', { p_salon: ctx.salonId, p_professional: ctx.viewScope, p_from: from, p_to: to, p_statuses: ['pending', 'confirmed', 'completed', 'no_show'] }),
+      rpc<any>('salon_dash_schedule', { p_salon: ctx.salonId, p_professional: ctx.viewScope }),
     ]);
     const items: Booking[] = bk.items;
     if (state.view === 'month') { renderMonth(days, items, sch); return; }
@@ -97,8 +97,8 @@ export async function calendarPage(ctx: Ctx) {
     const height = (hi - lo) * PX;
     // columns: day view = one per professional in scope; week view = one per day
     const cols = state.view === 'day'
-      ? (ctx.scope ? ctx.pros.filter((p) => p.id === ctx.scope) : ctx.pros).map((p) => ({ key: p.id, title: p.display_name, color: p.color, date: state.date, pro: p.id as string | null }))
-      : days.map((d) => ({ key: d, title: `${WEEKDAYS_SHORT[weekdayOf(d)]} ${Number(d.slice(8))}`, color: '', date: d, pro: ctx.scope }));
+      ? (ctx.viewScope ? ctx.pros.filter((p) => p.id === ctx.viewScope) : ctx.pros).map((p) => ({ key: p.id, title: p.display_name, color: p.color, date: state.date, pro: p.id as string | null }))
+      : days.map((d) => ({ key: d, title: `${WEEKDAYS_SHORT[weekdayOf(d)]} ${Number(d.slice(8))}`, color: '', date: d, pro: ctx.viewScope }));
     const hours: number[] = [];
     for (let m = lo; m < hi; m += 60) hours.push(m);
     const today = todayLocal();
@@ -138,6 +138,7 @@ export async function calendarPage(ctx: Ctx) {
         // click empty space to add a booking at that time
         col.addEventListener('click', (e) => {
           if ((e.target as Element).closest('.event, .cgrid-timeoff')) return;
+          if (!ctx.isOwner && c.pro && c.pro !== ctx.m.professional_id) return;   // another professional's column is view only
           const rect = col.getBoundingClientRect();
           const mins = lo + Math.floor(((e as MouseEvent).clientY - rect.top) / PX / 15) * 15;
           const time = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
@@ -155,7 +156,7 @@ export async function calendarPage(ctx: Ctx) {
           },
             h('span', { class: 'ev-svc', text: b.service }),
             h('span', { class: 'ev-client', text: b.client_name }),
-            hgt > 44 ? h('span', { class: 'ev-time', text: `${time12(b.local_time)} – ${time12(b.local_end)}${state.view === 'week' && !ctx.scope ? ', ' + b.professional_short : ''}` }) : null,
+            hgt > 44 ? h('span', { class: 'ev-time', text: `${time12(b.local_time)} – ${time12(b.local_end)}${state.view === 'week' && !ctx.viewScope ? ', ' + b.professional_short : ''}` }) : null,
             b.status === 'pending' ? h('span', { class: 'ev-flag', text: 'Awaiting confirmation' }) : null);
           if (b.buffer_min) col.appendChild(h('div', { class: 'ev-buffer', attrs: { 'aria-hidden': 'true' }, style: { top: `${top + b.duration_min * PX}px`, height: `${b.buffer_min * PX}px`, left: `calc(${(lane / lanes) * 100}% + 3px)`, width: `calc(${100 / lanes}% - 6px)` } }));
           col.appendChild(ev);
@@ -185,7 +186,7 @@ export async function calendarPage(ctx: Ctx) {
       const list = items.filter((b) => b.local_date === d);
       const shown = list.slice(0, list.length > MAX ? MAX - 1 : MAX);
       const rest = list.length - shown.length;
-      const off = offLabels(sch, ctx, ctx.scope, d);
+      const off = offLabels(sch, ctx, ctx.viewScope, d);
       return h('div', { class: ['mcell', d.slice(0, 7) !== month && 'is-out', d === today && 'is-today', off.length > 0 && 'has-off'] },
         h('button', { class: 'mcell-num', attrs: { type: 'button', 'aria-label': `${formatDateLong(d)}, ${list.length} appointment${list.length === 1 ? '' : 's'}. Open day` }, text: String(Number(d.slice(8))),
           on: { click: () => { state.date = d; state.view = 'day'; void load(); } } }),
@@ -198,14 +199,14 @@ export async function calendarPage(ctx: Ctx) {
       WEEKDAYS_SHORT.slice(1).concat(WEEKDAYS_SHORT[0]).map((w) => h('div', { class: 'mhead', text: w })),
       days.map(cell)),
       h('div', { class: 'cal-legend' },
-        ctx.isOwner && !ctx.scope ? ctx.pros.map((p) => h('span', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), p.short_name ?? p.display_name)) : null,
+        !ctx.viewScope ? ctx.pros.map((p) => h('span', null, h('span', { class: ['pro-dot', `pro-${p.color}`] }), p.short_name ?? p.display_name)) : null,
         h('span', null, h('span', { class: 'legend-swatch legend-pending' }), 'Awaiting confirmation'),
         h('span', null, h('span', { class: 'legend-swatch legend-timeoff' }), 'Time off / closed'),
         h('span', { class: 'muted', text: 'Tap a date to open that day.' })));
   }
 
   function renderAgenda(days: string[], items: Booking[], sch: any) {
-    const offDays = new Map(days.map((d) => [d, offLabels(sch, ctx, ctx.scope, d)] as [string, string[]]));
+    const offDays = new Map(days.map((d) => [d, offLabels(sch, ctx, ctx.viewScope, d)] as [string, string[]]));
     const anyOff = [...offDays.values()].some((v) => v.length);
     if (!items.length && !anyOff) { mount(body, emptyState(state.view === 'day' ? 'No appointments this day' : 'No appointments this week', 'Use New booking to add one.')); return; }
     mount(body, h('div', { class: 'agenda-days' }, days.map((d) => {
@@ -218,7 +219,7 @@ export async function calendarPage(ctx: Ctx) {
         list.length ? h('ol', { class: 'agenda' }, list.map((b) => h('li', { class: ['agenda-item', `pro-${b.professional_color}`, `st-${b.status}`] },
           h('button', { class: 'agenda-btn', attrs: { type: 'button' }, on: { click: () => openBooking(ctx, b.id, () => void load()) } },
             h('span', { class: 'agenda-time', text: `${time12(b.local_time)}–${time12(b.local_end)}` }),
-            h('span', { class: 'agenda-body' }, h('span', { class: 'agenda-client', text: b.client_name }), h('span', { class: 'agenda-svc', text: `${b.service}${ctx.isOwner ? ', ' + b.professional_short : ''}` })),
+            h('span', { class: 'agenda-body' }, h('span', { class: 'agenda-client', text: b.client_name }), h('span', { class: 'agenda-svc', text: `${b.service}${ctx.isOwner || !ctx.viewScope ? ', ' + b.professional_short : ''}` })),
             b.status === 'pending' ? h('span', { class: 'badge badge-pending', text: 'Awaiting' }) : null)))) : h('p', { class: 'muted small', text: 'No appointments.' }));
     })));
   }

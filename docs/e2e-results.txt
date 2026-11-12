@@ -56,9 +56,12 @@ PASS  S1 staff has no All professionals selector
 PASS  S2 staff has no owner administration links
 PASS  S3 Sofia sees her client, never Shirin's
 PASS  S4 Sofia confirms her request (persisted)
-PASS  S5 Sofia's bookings list contains no other profile's bookings
+PASS  S5 Sofia sees the whole team's bookings
+PASS  S5b other artists' bookings have no action buttons
+PASS  S5c "(me)" filter shows only Sofia's own bookings
+PASS  S5d opening another artist's booking is read-only with an explanation
 PASS  S6 staff opening an owner page is sent back to their overview
-PASS  S7 Sofia's token cannot widen scope or call owner functions
+PASS  S7 Sofia's token can view the team's bookings but cannot call owner functions
 PASS  R mobile: home has no horizontal overflow
 PASS  R mobile: booking has no horizontal overflow
 PASS  R mobile: studio has no horizontal overflow
@@ -67,4 +70,4 @@ PASS  R tablet: booking has no horizontal overflow
 PASS  R tablet: studio has no horizontal overflow
 PASS  Z no console errors, page errors or CSP violations
 
-68 checks passed
+71 checks passed

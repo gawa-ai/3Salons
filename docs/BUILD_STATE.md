@@ -110,3 +110,12 @@ Mahina ang password ng demo accounts (hiningi ni JG para sa preview). Bago ang t
 - Studio calendar Month view (Day/Week/Month), artist colours unchanged; e2e O4b.
 - Round 9c: add-another-service on the review page allows the same artist, own date and time (migration 20261021110000_multi_same_artist_dates.sql; per-item date; same_artist rule removed, overlaps still refused).
 - Round 9d: one combined deposit for multi-service requests (migration 20261021120000_group_deposit.sql): one text with the total, one payment confirms the group, one expired text. Payment details = the artist who accepts first.
+
+
+## Team can see everyone's bookings (2026-11-12)
+Client request: everyone sees everyone's bookings, but only gets notifications for themselves.
+- Migration `20261112100000_team_can_view_all_bookings.sql` (apply in Supabase SQL editor; UI works before or after): `app.view_scope`, `app.booking_json_for`, `salon_dash_booking` (adds `can_edit`), `salon_dash_bookings`, `salon_dash_overview`, `salon_dash_schedule` and `salon_me` (whole active team) now let any active member LOOK at any professional. `app.booking_for_caller` gives a clear `forbidden` when a member tries to change someone else's booking.
+- View only: confirm, decline, move, cancel, notes and "Deposit received" stay with the booking's own professional and the owner. Another professional's private Studio note, history and message log are not shown.
+- Unchanged and per professional: push alerts (owner + the professional the alert is about), Messages page, nav badges, clients, enquiries, services, availability, gallery, reports.
+- Studio: Calendar and Bookings show an "Everyone / each artist" filter for staff (default Everyone, own is "(me)"). Clicking another artist's calendar column does not start a booking.
+- Tests: `tests/db/run.sh` 249 PASS + concurrency; `tests/e2e/run.cjs` 71 PASS. Old tests that asserted "staff only sees own bookings" were updated to the new rule (44, 46, 47, 49, 51, 52, 63-65, 83).

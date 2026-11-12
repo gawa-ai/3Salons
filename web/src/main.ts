@@ -39,8 +39,8 @@ route('/forgot', () => forgotPage(app));
 route('/reset', () => resetPage(app));
 
 route('/studio', ({ path }) => studio(app, path, overviewPage, { title: 'Overview' }));
-route('/studio/calendar', ({ path }) => studio(app, path, calendarPage, { title: 'Calendar' }));
-route('/studio/bookings', ({ path }) => studio(app, path, bookingsPage, { title: 'Bookings' }));
+route('/studio/calendar', ({ path }) => studio(app, path, calendarPage, { title: 'Calendar', viewAll: true }));
+route('/studio/bookings', ({ path }) => studio(app, path, bookingsPage, { title: 'Bookings', viewAll: true }));
 route('/studio/clients', ({ path }) => studio(app, path, clientsPage, { title: 'Clients' }));
 route('/studio/enquiries', ({ path }) => studio(app, path, enquiriesPage, { title: 'Enquiries' }));
 route('/studio/services', ({ path }) => studio(app, path, servicesPage, { title: 'Services' }));

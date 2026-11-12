@@ -234,14 +234,15 @@ select (public.salon_dash_bookings(:'salon', :'p_sofia'))->'items' as own_b_owne
 
 select pg_temp.login(:'u_sofia');
 select public.salon_dash_bookings(:'salon') as sofia_b \gset
-select pg_temp.check(jsonb_array_length((:'sofia_b'::jsonb)->'items') = 2
-  and (select bool_and(x->>'professional_id' = :'p_sofia') from jsonb_array_elements((:'sofia_b'::jsonb)->'items') x),
-  '44 Sofia sees only her own bookings');
-select pg_temp.check((:'sofia_b'::jsonb)->'items' = :'own_b_owner'::jsonb, '45 owner filtered to Sofia == Sofia''s own view');
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_bookings(%L, %L)$$, :'salon', :'p_shirin'))->>'err') = 'forbidden',
-  '46 Sofia cannot ask for Shirin''s bookings by changing the filter');
-select pg_temp.check(jsonb_array_length((public.salon_dash_bookings(:'salon', null, null, null, null, '900111'))->'items') = 1,
-  '47 Sofia''s phone search never returns Shirin''s matching booking');
+select pg_temp.check(jsonb_array_length((:'sofia_b'::jsonb)->'items') = 4
+  and (select count(*) from jsonb_array_elements((:'sofia_b'::jsonb)->'items') x where x->>'professional_id' = :'p_sofia') = 2,
+  '44 Sofia sees the whole team''s bookings (view-only), including her own two');
+select pg_temp.check((public.salon_dash_bookings(:'salon', :'p_sofia'))->'items' = :'own_b_owner'::jsonb, '45 owner filtered to Sofia == Sofia''s own view');
+select pg_temp.check((select count(*) >= 1 and bool_and(x->>'professional_id' = :'p_shirin' and not (x ? 'internal_note'))
+                      from jsonb_array_elements((public.salon_dash_bookings(:'salon', :'p_shirin'))->'items') x),
+  '46 Sofia can filter to Shirin''s bookings, without Shirin''s private notes');
+select pg_temp.check(jsonb_array_length((public.salon_dash_bookings(:'salon', null, null, null, null, '900111'))->'items') >= 1,
+  '47 phone search works across the team');
 
 reset role;
 select id as bk_shirin from app.bookings where ref = (:'b2'::jsonb)->>'ref' \gset
@@ -252,10 +253,10 @@ select client_id as cl_sofia from app.bookings where id = :'bk_sofia' \gset
 select pg_temp.check(:'cl_shirin' <> :'cl_sofia', '48 same person = separate client record per professional');
 set role authenticated; select pg_temp.login(:'u_sofia');
 
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking(%L)$$, :'bk_shirin'))->>'err') = 'not_found', '49 Sofia cannot open Shirin''s booking (looks non-existent)');
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking(%L)$$, gen_random_uuid()))->>'err') = 'not_found', '50 ...same error as a booking that does not exist');
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking_action(%L, 'cancel')$$, :'bk_shirin'))->>'err') = 'not_found', '51 Sofia cannot cancel Shirin''s booking');
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking_note(%L, 'x')$$, :'bk_shirin'))->>'err') = 'not_found', '52 Sofia cannot write notes on Shirin''s booking');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking(%L)$$, :'bk_shirin'))#>>'{res,can_edit}') = 'false', '49 Sofia can open Shirin''s booking, read-only');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking(%L)$$, gen_random_uuid()))->>'err') = 'not_found', '50 a booking that does not exist is still not_found');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking_action(%L, 'cancel')$$, :'bk_shirin'))->>'err') = 'forbidden', '51 Sofia cannot cancel Shirin''s booking');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking_note(%L, 'x')$$, :'bk_shirin'))->>'err') = 'forbidden', '52 Sofia cannot write notes on Shirin''s booking');
 select pg_temp.check((pg_temp.q(format($$select public.salon_dash_client(%L)$$, :'cl_shirin'))->>'err') = 'not_found', '53 Sofia cannot open Shirin''s client record');
 select pg_temp.check((pg_temp.q(format($$select public.salon_dash_client_save(%L, '{"notes":"x"}')$$, :'cl_shirin'))->>'err') = 'not_found', '54 Sofia cannot edit Shirin''s client');
 select pg_temp.check((select bool_and(x->>'professional_id' = :'p_sofia') from jsonb_array_elements((public.salon_dash_clients(:'salon'))->'items') x),
@@ -269,9 +270,9 @@ select pg_temp.check((select count(*) from jsonb_array_elements((public.salon_da
 select pg_temp.check((pg_temp.q(format($$select public.salon_owner_team(%L)$$, :'salon'))->>'err') = 'forbidden', '60 staff cannot open team admin');
 select pg_temp.check((pg_temp.q(format($$select public.salon_owner_audit(%L)$$, :'salon'))->>'err') = 'forbidden', '61 staff cannot read audit trail');
 select pg_temp.check((pg_temp.q(format($$select public.salon_owner_settings_save(%L, '{"booking_mode":"live"}')$$, :'salon'))->>'err') = 'forbidden', '62 staff cannot change salon settings');
-select pg_temp.check((select jsonb_array_length((public.salon_me())#>'{memberships,0,professionals}'))  = 1, '63 staff session lists only their own profile');
-select pg_temp.check((select (public.salon_dash_overview(:'salon'))->'by_professional') = 'null'::jsonb, '64 staff overview has no per-profile breakdown');
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_overview(%L, %L)$$, :'salon', :'p_shirin'))->>'err') = 'forbidden', '65 overview metrics cannot be widened');
+select pg_temp.check((select jsonb_array_length((public.salon_me())#>'{memberships,0,professionals}'))  >= 3, '63 staff session lists the whole active team (names and colours only)');
+select pg_temp.check(jsonb_typeof((public.salon_dash_overview(:'salon'))->'by_professional') = 'array', '64 staff overview shows the team breakdown');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_overview(%L, %L)$$, :'salon', :'p_shirin'))#>>'{res,ok}') = 'true', '65 staff can look at another professional''s overview (read-only)');
 select pg_temp.check((pg_temp.q(format($$select public.salon_dash_report(%L, %L)$$, :'salon', :'p_shirin'))->>'err') = 'forbidden', '66 report cannot be widened');
 
 select pg_temp.login(:'u_shirin');
@@ -312,7 +313,8 @@ select pg_temp.login(:'u_owner');
 select pg_temp.check((public.salon_dash_booking_reschedule(:'bk_sofia', :'d1', '15:00', :'p_shirin', :'s_shirin_hair'))#>>'{booking,professional_id}' = :'p_shirin',
   '82 owner reassigns Sofia''s booking to Shirin (revalidated)');
 select pg_temp.login(:'u_sofia');
-select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking(%L)$$, :'bk_sofia'))->>'err') = 'not_found', '83 reassigned booking leaves Sofia''s view');
+select pg_temp.check((public.salon_dash_booking(:'bk_sofia'))->>'can_edit' = 'false'
+  and position('PRIVATE-SOFIA-NOTE' in (public.salon_dash_booking(:'bk_sofia'))::text) = 0, '83 reassigned booking becomes read-only for Sofia and her private note stays hidden');
 select pg_temp.login(:'u_shirin');
 select pg_temp.check((public.salon_dash_booking(:'bk_sofia'))#>>'{booking,status}' = 'confirmed'
   and position('PRIVATE-SOFIA-NOTE' in (public.salon_dash_booking(:'bk_sofia'))::text) = 0, '84 ...appears for Shirin without Sofia''s private notes');
@@ -1088,5 +1090,34 @@ select pg_temp.check((select status from app.enquiries where id = :'enq2') = 'co
                      'BR20 cancelled/declined booking puts the enquiry back to Contacted');
 set role authenticated; select pg_temp.login(:'u_shirin');
 select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_agree(%L, '{}')$$, :'enq2'))->>'res') is null, 'BR21 another artist cannot agree Sofia''s enquiry');
+reset role;
+
+-- ---------------------------------------------------------------- team can view all bookings (read-only)
+update app.bookings set internal_note = 'private to Sofia' where id = :'bk'::uuid;
+set role authenticated; select pg_temp.login(:'u_shirin');
+select pg_temp.check((select count(*) from jsonb_array_elements((public.salon_dash_bookings(:'salon'::uuid))->'items') i
+                      where i->>'professional_id' = :'p_sofia') >= 1, 'TV1 Shirin sees Sofia''s bookings in the all-team list');
+select pg_temp.check((select count(*) from jsonb_array_elements((public.salon_dash_bookings(:'salon'::uuid, :'p_sofia'::uuid))->'items') i) >= 1,
+                     'TV2 Shirin can pick Sofia in the calendar filter');
+select public.salon_dash_booking(:'bk'::uuid) as tv3 \gset
+select pg_temp.check((:'tv3'::jsonb)->>'ok' = 'true' and not ((:'tv3'::jsonb)->'booking' ? 'internal_note')
+                     and (:'tv3'::jsonb)->>'can_edit' = 'false'
+                     and jsonb_array_length((:'tv3'::jsonb)->'history') = 0 and jsonb_array_length((:'tv3'::jsonb)->'messages') = 0,
+                     'TV3 Sofia''s booking opens read-only for Shirin: no private note, history or messages', :'tv3'::jsonb);
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking_action(%L, 'cancel')$$, :'bk'))->>'err') = 'forbidden',
+                     'TV4 Shirin cannot change Sofia''s booking');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_booking_note(%L, 'hello')$$, :'bk'))->>'res') is null, 'TV5 Shirin cannot edit Sofia''s note');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_messages(%L, %L)$$, :'salon', :'p_sofia'))->>'err') = 'forbidden',
+                     'TV6 message log stays private to each professional');
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_clients(%L, %L)$$, :'salon', :'p_sofia'))->>'err') = 'forbidden',
+                     'TV7 client records stay private to each professional');
+select pg_temp.check((public.salon_dash_overview(:'salon'::uuid))->'by_professional' is not null
+                     and jsonb_typeof((public.salon_dash_overview(:'salon'::uuid))->'by_professional') = 'array', 'TV8 team overview works for staff');
+select pg_temp.check((select jsonb_array_length(m->'professionals') from jsonb_array_elements((public.salon_me())->'memberships') m limit 1) >= 3,
+                     'TV9 staff login receives the whole team for the calendar columns');
+reset role; select pg_temp.login(:'u_sofia'); set role authenticated;
+select public.salon_dash_booking(:'bk'::uuid) as tv10 \gset
+select pg_temp.check((:'tv10'::jsonb)#>>'{booking,internal_note}' = 'private to Sofia' and (:'tv10'::jsonb)->>'can_edit' = 'true'
+                     and jsonb_array_length((:'tv10'::jsonb)->'messages') >= 1, 'TV10 the booking''s own artist still sees everything');
 reset role;
 \echo ALL_TESTS_PASSED

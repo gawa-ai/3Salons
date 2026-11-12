@@ -369,7 +369,19 @@ async function main() {
     await page.goto(BASE + '/studio/bookings?view=all');
     await page.waitForSelector('.brow');
     const list = await page.locator('main').innerText();
-    check(!list.includes('Zainab'), 'S5 Sofia\'s bookings list contains no other profile\'s bookings');
+    check(list.includes('Zainab') && list.includes('Amira Khan'), 'S5 Sofia sees the whole team\'s bookings');
+    check((await page.locator('.brow:has-text("Zainab") .brow-actions button').count()) === 0, 'S5b other artists\' bookings have no action buttons');
+    await page.locator('.scope-btn', { hasText: '(me)' }).click();
+    await page.waitForSelector('.brow');
+    check(!(await page.locator('main').innerText()).includes('Zainab'), 'S5c "(me)" filter shows only Sofia\'s own bookings');
+    await page.locator('.scope-btn', { hasText: 'Everyone' }).click();
+    await page.waitForSelector('.brow:has-text("Zainab")');
+    await page.locator('.brow:has-text("Zainab") .brow-main').click();
+    await page.waitForSelector('text=You can see this booking');
+    const dlg = await page.locator('body').innerText();
+    check(dlg.includes('only Shirin') && !dlg.includes('Studio note') && !(await page.locator('button:has-text("Cancel booking")').count()),
+          'S5d opening another artist\'s booking is read-only with an explanation');
+    await page.keyboard.press('Escape');
     await page.goto(BASE + '/studio/team');
     await page.waitForURL('**/studio');
     check(true, 'S6 staff opening an owner page is sent back to their overview');
@@ -383,7 +395,7 @@ async function main() {
       return { widen: await call('salon_dash_bookings', { p_salon: salon, p_professional: shirinPro }), owner: await call('salon_owner_team', { p_salon: salon }) };
     }, sql(`select id from app.professionals where slug='shirin-jal'`));
     await page.waitForTimeout(300); problems.splice(beforeProbe);
-    check(probe.widen.message === 'forbidden' && probe.owner.message === 'forbidden', 'S7 Sofia\'s token cannot widen scope or call owner functions', JSON.stringify(probe));
+    check(probe.widen.ok === true && probe.owner.message === 'forbidden', 'S7 Sofia\'s token can view the team\'s bookings but cannot call owner functions', JSON.stringify(probe));
     await page.goto(BASE + '/studio/calendar');
     await page.waitForSelector('.cgrid');
     await shot(page, 'desktop-staff-calendar', false);
