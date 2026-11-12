@@ -1126,4 +1126,9 @@ reset role;
 select pg_temp.check((select count(*) from app.services v join app.professionals p on p.id = v.professional_id
                       where p.slug = 'mi-hijabby-sabiha' and v.name = 'Bridal Hijab' and v.price_pence = 10000 and v.price_kind = 'from'
                         and v.duration_min = 60 and not v.bookable_online and v.category = 'bridal') = 1, 'SB1 Sabiha lists Bridal Hijab from £100, 1 hr, enquiry only');
+select pg_temp.check((select count(*) from app.services v join app.professionals p on p.id = v.professional_id
+                      where p.slug = 'shirin-jal' and v.name = 'Bridal Hijab' and v.price_pence = 10000 and v.price_kind = 'from'
+                        and v.duration_min = 60 and not v.bookable_online) = 1, 'SB2 Shirin lists Bridal Hijab from £100, 1 hr, enquiry only');
+select pg_temp.check((select count(*) from app.services v join app.professionals p on p.id = v.professional_id
+                      where p.slug = 'shirin-jal' and v.category = 'bridal' and v.active) = 1, 'SB3 Shirin still has exactly one Bridal service for the deposit flow');
 \echo ALL_TESTS_PASSED

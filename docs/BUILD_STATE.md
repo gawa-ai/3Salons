@@ -137,3 +137,6 @@ Client request: a box under Event date on the bridal enquiry form.
 - Migration `20261112160000_enquiry_ready_time.sql` (run in Supabase SQL editor): `app.enquiries.ready_time` (optional), saved by `salon_public_enquiry` and returned by `salon_dash_enquiries` (both patched in place).
 - Form: optional time input "Time to be ready" under Event date. Studio enquiry card shows "Time to be ready".
 - Tests: DB TR1; DB 250+ PASS, e2e 73 PASS.
+
+## Shirin: Bridal Hijab card (2026-11-12)
+Same card as Sabiha. `20261112170000_shirin_bridal_hijab_listing.sql` adds an enquiry-only "Bridal Hijab" (hijab category, 1 hr, from £100) for Shirin; her "Bridal" service is unchanged and still drives the bridal deposit flow. Applied to live. Tests SB2, SB3.
