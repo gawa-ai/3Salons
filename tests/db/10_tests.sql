@@ -1056,12 +1056,13 @@ set role authenticated; select pg_temp.login(:'u_sofia');
 select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_update(%L, '{"status":"agreed"}')$$, :'enq'))->>'err') = 'invalid_status', 'BR6 Agreed cannot be set by hand');
 select public.salon_dash_enquiry_update(:'enq', '{"status":"contacted"}') as u1 \gset
 select pg_temp.check((:'u1'::jsonb)->>'ok' = 'true', 'BR7 Contacted still works');
-select public.salon_dash_enquiry_agree(:'enq', jsonb_build_object('date',:'bd','time','07:00','duration_min',180,'deposit_pence',5000)) as ag \gset
+select pg_temp.check((pg_temp.q(format($$select public.salon_dash_enquiry_agree(%L, jsonb_build_object('date',%L,'time','07:00','deposit_pence',5000,'total_pence',3000))$$, :'enq', :'bd'))->>'err') = 'total_invalid', 'BR7b total below the deposit is refused');
+select public.salon_dash_enquiry_agree(:'enq', jsonb_build_object('date',:'bd','time','07:00','deposit_pence',5000,'total_pence',15000)) as ag \gset
 select pg_temp.check((:'ag'::jsonb)->>'ok' = 'true', 'BR8 artist agrees: time held, deposit requested', :'ag'::jsonb);
 select (:'ag'::jsonb)#>>'{booking,id}' as bk \gset
 reset role;
 select pg_temp.check((select status from app.enquiries where id = :'enq') = 'agreed', 'BR9 enquiry is Agreed');
-select pg_temp.check((select status = 'pending' and deposit_status = 'requested' and deposit_pence = 5000 and duration_min = 180 and service_name = 'Bridal'
+select pg_temp.check((select status = 'pending' and deposit_status = 'requested' and deposit_pence = 5000 and duration_min = 180 and price_pence = 15000 and price_kind = 'fixed' and service_name = 'Bridal'
                       from app.bookings where id = (select booking_id from app.enquiries where id = :'enq')), 'BR10 pending bridal booking with the deposit');
 select pg_temp.check((select body from app.notifications where purpose = 'deposit_request' and booking_id = (select booking_id from app.enquiries where id = :'enq'))
                      like '%£50%non refundable%', 'BR11 client gets the deposit message', (select jsonb_agg(body) from app.notifications where purpose = 'deposit_request'));

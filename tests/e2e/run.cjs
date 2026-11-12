@@ -276,7 +276,7 @@ async function main() {
     check(await page.locator('button:has-text("Agreed, request deposit")').first().isVisible(), 'ENQ1 bridal enquiry offers "Agreed, request deposit"');
     await page.click('button:has-text("Agreed, request deposit")');
     await page.waitForSelector('input[name="dep"]');
-    check(await page.locator('text=Send deposit request').isVisible(), 'ENQ2 agree dialog asks for date, time, length and deposit');
+    check(await page.locator('text=Send deposit request').isVisible(), 'ENQ2 agree dialog asks for date, time, total and deposit');
     await shot(page, 'desktop-owner-enquiry-agree', false);
     await page.keyboard.press('Escape');
     await page.goto(BASE + '/studio/messages');

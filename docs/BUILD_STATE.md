@@ -119,3 +119,9 @@ Client request: everyone sees everyone's bookings, but only gets notifications f
 - Unchanged and per professional: push alerts (owner + the professional the alert is about), Messages page, nav badges, clients, enquiries, services, availability, gallery, reports.
 - Studio: Calendar and Bookings show an "Everyone / each artist" filter for staff (default Everyone, own is "(me)"). Clicking another artist's calendar column does not start a booking.
 - Tests: `tests/db/run.sh` 249 PASS + concurrency; `tests/e2e/run.cjs` 71 PASS. Old tests that asserted "staff only sees own bookings" were updated to the new rule (44, 46, 47, 49, 51, 52, 63-65, 83).
+
+## Agree-deposit dialog: total, no duration (2026-11-12)
+Client request: add "Total (including travel)" before Deposit, remove "How long".
+- Migration `20261112140000_agree_total_no_duration.sql` (run in Supabase SQL editor): `salon_dash_enquiry_agree` takes optional `total_pence` (must be >= deposit, saved as the booking's fixed price) and no longer needs `duration_min` (3 hours held by default).
+- Studio dialog (`lists.ts agreeEnquiry`): fields are Date, Start time, Total (including travel) (£), Deposit (£). Total is required; deposit cannot exceed it.
+- Tests: DB BR7b + BR10 extended; e2e ENQ2 wording. 249+ DB PASS, e2e 71 PASS.

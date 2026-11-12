@@ -162,18 +162,19 @@ function agreeEnquiry(ctx: Ctx, e: any, onDone: () => void) {
   const d = openDialog({ title: 'Agreed, request deposit', subtitle: e.name, size: 'sm' });
   const date = field({ label: 'Date', name: 'date', type: 'date', value: e.event_date ?? '', required: true, min: todayLocal() });
   const time = field({ label: 'Start time', name: 'time', type: 'time', value: '', required: true });
-  const dur = field({ label: 'How long (hours)', name: 'dur', type: 'number', value: '3', required: true, min: '0.25', max: '12', step: '0.25', inputmode: 'decimal' });
+  const total = field({ label: 'Total (including travel) (£)', name: 'total', type: 'number', value: '', required: true, min: '1', step: '0.01', inputmode: 'decimal' });
   const dep = field({ label: 'Deposit (£)', name: 'dep', type: 'number', value: '20', required: true, min: '1', step: '0.01', inputmode: 'decimal' });
   const err = h('div');
-  append(d.body, h('p', { class: 'muted small', text: 'Once you and the client have agreed, enter the details. This holds the time in your calendar and texts the client the deposit request with your payment details. When you press "Deposit received" on the booking, they get their confirmation and the enquiry becomes Booked.' }), date.wrap, time.wrap, dur.wrap, dep.wrap, err);
+  append(d.body, h('p', { class: 'muted small', text: 'Once you and the client have agreed, enter the details. This holds the time in your calendar and texts the client the deposit request with your payment details. When you press "Deposit received" on the booking, they get their confirmation and the enquiry becomes Booked.' }), date.wrap, time.wrap, total.wrap, dep.wrap, err);
   const save = button('Send deposit request', { onClick: async () => {
     mount(err);
-    const mins = Math.round(Number(dur.input.value) * 60);
+    const totalPence = Math.round(Number(total.input.value) * 100);
     const pence = Math.round(Number(dep.input.value) * 100);
-    if (!date.input.value || !time.input.value || !(mins >= 15) || !(pence > 0)) { mount(err, notice('error', 'Please fill in the date, start time, length and deposit.')); return; }
+    if (!date.input.value || !time.input.value || !(totalPence > 0) || !(pence > 0)) { mount(err, notice('error', 'Please fill in the date, start time, total and deposit.')); return; }
+    if (pence > totalPence) { mount(err, notice('error', 'The deposit cannot be more than the total.')); return; }
     setBusy(save, true, 'Sending…');
     try {
-      await rpc('salon_dash_enquiry_agree', { p_enquiry: e.id, p_payload: { date: date.input.value, time: time.input.value, duration_min: mins, deposit_pence: pence } });
+      await rpc('salon_dash_enquiry_agree', { p_enquiry: e.id, p_payload: { date: date.input.value, time: time.input.value, total_pence: totalPence, deposit_pence: pence } });
       toast('Deposit request sent'); d.close(); onDone();
     } catch (x) { setBusy(save, false); mount(err, notice('error', (x as Error).message)); }
   } });
