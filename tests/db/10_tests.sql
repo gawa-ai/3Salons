@@ -1121,4 +1121,8 @@ select public.salon_dash_booking(:'bk'::uuid) as tv10 \gset
 select pg_temp.check((:'tv10'::jsonb)#>>'{booking,internal_note}' = 'private to Sofia' and (:'tv10'::jsonb)->>'can_edit' = 'true'
                      and jsonb_array_length((:'tv10'::jsonb)->'messages') >= 1, 'TV10 the booking''s own artist still sees everything');
 reset role;
+reset role;
+select pg_temp.check((select count(*) from app.services v join app.professionals p on p.id = v.professional_id
+                      where p.slug = 'mi-hijabby-sabiha' and v.name = 'Bridal Hijab' and v.price_pence = 10000 and v.price_kind = 'from'
+                        and v.duration_min = 60 and not v.bookable_online and v.category = 'bridal') = 1, 'SB1 Sabiha lists Bridal Hijab from £100, 1 hr, enquiry only');
 \echo ALL_TESTS_PASSED

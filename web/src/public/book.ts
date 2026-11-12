@@ -115,13 +115,20 @@ export async function bookPage(app: HTMLElement, query: URLSearchParams) {
   function stepService() {
     const p = st.pro!;
     const online = p.services.filter((s) => s.bookable_online);
-    const enquire = p.services.filter((s) => !s.bookable_online);
+    const listed = p.services.filter((s) => !s.bookable_online && s.price_kind !== 'enquire');   // enquiry-only, but with a price to show
+    const enquire = p.services.filter((s) => !s.bookable_online && s.price_kind === 'enquire');
     return [h('h2', { class: 'step-title', attrs: { tabindex: '-1' }, text: `Choose a service with ${p.short_name}` }),
-      h('ul', { class: 'choice-list' }, online.map((s) => h('li', null,
-        h('button', { class: ['choice', 'choice-service', st.service?.id === s.id && 'selected'], attrs: { type: 'button', 'aria-pressed': String(st.service?.id === s.id) },
-          on: { click: () => { if (st.service?.id !== s.id) { st.service = s; st.date = null; st.time = null; st.extra = []; st.idem = newIdempotencyKey(); } syncUrl(); go(3); } } },
-          h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `${durationLabel(s.duration_min)}${s.description ? '. ' + s.description : ''}` })),
-          h('span', { class: 'choice-price', text: s.price_label }))))),
+      h('ul', { class: 'choice-list' }, [
+        ...online.map((s) => h('li', null,
+          h('button', { class: ['choice', 'choice-service', st.service?.id === s.id && 'selected'], attrs: { type: 'button', 'aria-pressed': String(st.service?.id === s.id) },
+            on: { click: () => { if (st.service?.id !== s.id) { st.service = s; st.date = null; st.time = null; st.extra = []; st.idem = newIdempotencyKey(); } syncUrl(); go(3); } } },
+            h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `${durationLabel(s.duration_min)}${s.description ? '. ' + s.description : ''}` })),
+            h('span', { class: 'choice-price', text: s.price_label })))),
+        ...listed.map((s) => h('li', null,
+          h('a', { class: ['choice', 'choice-service'], attrs: { href: `/bridal?artist=${p.slug}` } },
+            h('span', { class: 'choice-body' }, h('span', { class: 'choice-title', text: s.name }), h('span', { class: 'choice-sub', text: `${durationLabel(s.duration_min)}. By enquiry` })),
+            h('span', { class: 'choice-price', text: `${s.price_label.charAt(0).toUpperCase()}${s.price_label.slice(1)} (plus travel)` })))),
+      ]),
       enquire.length ? h('div', { class: 'enquire-box' }, icon('heart', 18), h('p', null, `${enquire.map((s) => s.name).join(', ')} ${enquire.length > 1 ? 'are' : 'is'} by enquiry. `, h('a', { attrs: { href: `/bridal?artist=${p.slug}` }, text: 'Send an enquiry' }))) : null,
       h('div', { class: 'step-nav' }, button('Back', { variant: 'ghost', icon: 'chevronLeft', onClick: () => go(1) }))];
   }

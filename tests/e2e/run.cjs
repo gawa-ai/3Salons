@@ -141,6 +141,13 @@ async function main() {
     check(await page.locator('text=has not confirmed this booking yet').isVisible(), 'P10 private manage link shows provisional status');
     await shot(page, 'desktop-manage', false);
 
+    // Sabiha: the enquiry-only Bridal Hijab shows as a card under Party Hijab
+    await page.goto(BASE + '/book');
+    await page.click('.choice-pro:has-text("Sabiha")');
+    await page.waitForSelector('.choice-service:has-text("Party Hijab")');
+    const sab = (await page.locator('.choice-list li').allTextContents()).map((t) => t.replace(/\s+/g, ' '));
+    check(sab.length === 2 && /Party Hijab/.test(sab[0]) && /Bridal Hijab.*1 hr.*From £100 \(plus travel\)/.test(sab[1]), 'SB-UI Bridal Hijab card sits under Party Hijab with From £100 (plus travel), 1 hr', sab);
+    check((await page.locator('a.choice-service:has-text("Bridal Hijab")').getAttribute('href')).includes('/bridal?artist=mi-hijabby-sabiha'), 'SB-UI card links to the bridal enquiry for Sabiha');
     // two artists at the same time
     await page.goto(BASE + '/book');
     await page.click('.choice-pro:has-text("Sofia Musa")');
